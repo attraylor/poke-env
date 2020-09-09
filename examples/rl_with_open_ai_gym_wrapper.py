@@ -11,7 +11,7 @@ from poke_env.dqn2 import DQNAgent
 from rl.policy import LinearAnnealedPolicy
 from poke_env.policy2 import EpsGreedyQPolicy
 from rl.memory import SequentialMemory
-from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.layers import Dense, Flatten, Embedding
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.optimizers import Adam
 
@@ -100,6 +100,76 @@ def build_dqn(input_shape=10, name=""):
 
 	model = Sequential()
 	model.add(Dense(128, activation="elu", input_shape=(1, input_shape)))
+
+	# Our embedding have shape (1, 10), which affects our hidden layer
+	# dimension and output dimension
+	# Flattening resolve potential issues that would arise otherwise
+	#model.add(Flatten())
+	model.add(Dense(64, activation="elu"))
+	model.add(Dense(n_action, activation="linear"))
+
+	memory = SequentialMemory(limit=10000, window_length=1)
+
+	if name == "old":
+		# Simple epsilon greedy
+		policy = LinearAnnealedPolicy(
+			EPSGREEDY_default(),
+			attr="eps",
+			value_max=1.0,
+			value_min=0.05,
+			value_test=0,
+			nb_steps=10000,
+		)
+
+		# Defining our DQN
+		dqn = DQN_default(
+			model=model,
+			nb_actions=18,
+			policy=policy,
+			memory=memory,
+			nb_steps_warmup=1000,
+			gamma=0.5,
+			target_model_update=1,
+			delta_clip=0.01,
+			enable_double_dqn=True,
+		)
+	else:
+		# Simple epsilon greedy
+		policy = LinearAnnealedPolicy(
+			EpsGreedyQPolicy(),
+			attr="eps",
+			value_max=1.0,
+			value_min=0.05,
+			value_test=0,
+			nb_steps=10000,
+		)
+
+		# Defining our DQN
+		dqn = DQNAgent(
+			model=model,
+			nb_actions=18,
+			policy=policy,
+			memory=memory,
+			nb_steps_warmup=1000,
+			gamma=0.5,
+			target_model_update=1,
+			delta_clip=0.01,
+			enable_double_dqn=True,
+		)
+
+	dqn.compile(Adam(lr=0.00025), metrics=["mae"])
+	return dqn
+
+
+def build_advanced_dqn(input_shape=4, name=""):
+	# Output dimension
+	move_emb_dim = 32
+	n_action = len(env_player.action_space)
+
+	model = Sequential()
+	model.add(Embedding(796, move_emb_dim, 4)) #MOVE EMBEDDING
+	model.add(Flatten())
+	model.add(Dense(128, activation="elu", input_shape=(1, move_emb_dim * 4)))
 
 	# Our embedding have shape (1, 10), which affects our hidden layer
 	# dimension and output dimension

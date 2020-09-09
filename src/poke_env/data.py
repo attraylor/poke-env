@@ -49,6 +49,29 @@ def to_id_str(name: str) -> str:
     return "".join(char for char in name if char.isalnum()).lower()
 
 
+STR_TO_ID = {}
+for name, filename in [
+						("abilities", "abilities.json"),
+						("items", "items.json"),
+						("moves", "moves.json"),
+						("natures", "natures.json"),
+						("species", "species.json"),
+						("types", "types.json")
+					  ]:
+	filepath = os.path.join(
+	    os.path.dirname(os.path.realpath(__file__)), "data/ids/gen7", filename
+	)
+	with open(filepath) as fp:
+		STR_TO_ID[name] = json.load(fp)
+
+GEN7_ABILITIES: str = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)), "data", "typeChart.json"
+)
+
+
+
+
+
 _TYPE_CHART_PATH: str = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "data", "typeChart.json"
 )
@@ -80,7 +103,27 @@ for name, value in POKEDEX.items():
     else:
         value["baseSpecies"] = to_id_str(name)
 
+<<<<<<< HEAD
 MOVES: Dict[str, Any] = {}
+=======
+ABILITYDEX: Dict = {}
+
+with open(
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "abilities.json")
+) as abilities:
+    ABILITYDEX = json.load(abilities)
+
+ITEMS: Dict = {}
+
+with open(
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "items.json")
+) as items:
+    ITEMS = json.load(items)
+
+
+
+MOVES: Dict = {}
+>>>>>>> wip
 
 with open(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "moves.json")
