@@ -43,6 +43,7 @@ Transition = namedtuple('Transition',
 def stack_dicts():
 	#TODO: Convert dict of embed_state dictionary objects to one dictionary
 	#That is correctly batched.
+	pass
 
 class ReplayMemory(object):
 

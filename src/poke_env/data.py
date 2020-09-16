@@ -105,7 +105,6 @@ for name, value in POKEDEX.items():
 
 <<<<<<< HEAD
 MOVES: Dict[str, Any] = {}
-=======
 ABILITYDEX: Dict = {}
 
 with open(
@@ -123,7 +122,6 @@ with open(
 
 
 MOVES: Dict = {}
->>>>>>> wip
 
 with open(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "moves.json")
