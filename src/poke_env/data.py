@@ -4,6 +4,7 @@
 
 import orjson
 import os
+import json
 
 from functools import lru_cache
 from typing import Any, Union
@@ -149,3 +150,17 @@ TYPE_CHART[type_1][type_2] corresponds to the damage multiplier of an attack of 
 on a Pokemon of type_2. This dictionnary isncomputed using the `compute_type_chart`
 function.
 """
+STR_TO_ID = {}
+for name, filename in [
+						("abilities", "abilities.json"),
+						("items", "items.json"),
+						("moves", "moves.json"),
+						("natures", "natures.json"),
+						("species", "species.json"),
+						("types", "types.json")
+					  ]:
+	filepath = os.path.join(
+	    os.path.dirname(os.path.realpath(__file__)), "data/ids/gen7", filename
+	)
+	with open(filepath) as fp:
+		STR_TO_ID[name] = json.load(fp)
