@@ -104,8 +104,6 @@ for name, value in POKEDEX.items():
     else:
         value["baseSpecies"] = to_id_str(name)
 
-<<<<<<< HEAD
-MOVES: Dict[str, Any] = {}
 ABILITYDEX: Dict = {}
 
 with open(
