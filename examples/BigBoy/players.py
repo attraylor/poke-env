@@ -20,7 +20,7 @@ import torch.nn.functional as F
 # import torchvision.transforms as T
 
 from poke_env.player_configuration import PlayerConfiguration
-from poke_env.player.env_player import Gen7EnvSinglePlayer
+from poke_env.player.env_player import Gen8EnvSinglePlayer
 from poke_env.player.random_player import RandomPlayer
 from poke_env.server_configuration import LocalhostServerConfiguration
 from poke_env.player.player import Player
@@ -40,7 +40,8 @@ def fix_type(s):
 	return s[0] + s[1:].lower()
 
 
-class BigBoyRLPlayer(Gen7EnvSinglePlayer):
+
+class BigBoyRLPlayer(Gen8EnvSinglePlayer):
 	def embed_battle(self, battle):
 		final_state_dict = {}
 		team = []
@@ -70,11 +71,12 @@ class BigBoyRLPlayer(Gen7EnvSinglePlayer):
 			boosts = [0] * 7
 			volatiles = [0] * len(relevant_conditions.volatiles)
 
-			if not pokemon == None and not pokemon.fainted:
+			if not pokemon == None and not pokemon.fainted and not pokemon._species == "zoroark":
 				# -1 indicates that the move does not have a base power
 				# or is not available
 
 				species_id = STR_TO_ID["species"][to_id_str(pokemon._species)]
+
 
 				#Type ids
 
@@ -93,6 +95,8 @@ class BigBoyRLPlayer(Gen7EnvSinglePlayer):
 
 
 				for i, move in enumerate(pokemon.moves):
+					if i == 4:
+						break
 					move_obj = pokemon.moves[move]
 					#TODO: Sometimes this throws an error. Why?
 					try:
@@ -163,7 +167,11 @@ class BigBoyRLPlayer(Gen7EnvSinglePlayer):
 						stat_min = 70
 						#Min other stat at level 100: 70
 						#Max other stat at level 100: 714
-					scaled_stats[i] = (stat - stat_min) / (1.0 * stat_max - stat_min)
+					try:
+						scaled_stats[i] = (stat - stat_min) / (1.0 * stat_max - stat_min)
+					except TypeError:
+						print("TypeError: Zoroark")
+						scaled_stats[i] = 0
 
 
 
@@ -354,7 +362,7 @@ class BigBoyRLPlayer(Gen7EnvSinglePlayer):
 
 
 
-class StabSimpleRLPlayer(Gen7EnvSinglePlayer):
+class StabSimpleRLPlayer(Gen8EnvSinglePlayer):
 	def embed_battle(self, battle):
 		# -1 indicates that the move does not have a base power
 		# or is not available
@@ -397,7 +405,7 @@ class StabSimpleRLPlayer(Gen7EnvSinglePlayer):
 
 
 
-class SimpleRLPlayer(Gen7EnvSinglePlayer):
+class SimpleRLPlayer(Gen8EnvSinglePlayer):
 	def embed_battle(self, battle):
 		# -1 indicates that the move does not have a base power
 		# or is not available

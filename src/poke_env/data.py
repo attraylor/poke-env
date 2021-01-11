@@ -59,8 +59,9 @@ for name, filename in [
 						("species", "species.json"),
 						("types", "types.json")
 					  ]:
+	print(__file__)
 	filepath = os.path.join(
-	    os.path.dirname(os.path.realpath(__file__)), "data/ids/gen7", filename
+	    os.path.dirname(os.path.realpath(__file__)), "data/ids/gen8", filename
 	)
 	with open(filepath) as fp:
 		STR_TO_ID[name] = json.load(fp)
@@ -135,30 +136,3 @@ with open(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "natures.json")
 ) as natures:
     NATURES = orjson.loads(natures.read())
-
-
-"""
-A dictionnary representing the Pokemon type chart.
-
-Each key is a string representing a type (corresponding to `Type` names), and each value
-is a dictionnary whose keys are string representation of types, and whose values are
-floats.
-
-TYPE_CHART[type_1][type_2] corresponds to the damage multiplier of an attack of type_1
-on a Pokemon of type_2. This dictionnary isncomputed using the `compute_type_chart`
-function.
-"""
-STR_TO_ID = {}
-for name, filename in [
-						("abilities", "abilities.json"),
-						("items", "items.json"),
-						("moves", "moves.json"),
-						("natures", "natures.json"),
-						("species", "species.json"),
-						("types", "types.json")
-					  ]:
-	filepath = os.path.join(
-	    os.path.dirname(os.path.realpath(__file__)), "data/ids/gen7", filename
-	)
-	with open(filepath) as fp:
-		STR_TO_ID[name] = json.load(fp)

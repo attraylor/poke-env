@@ -39,7 +39,12 @@ side_conditions = [
 	SideCondition.STEALTH_ROCK,
 	SideCondition.STICKY_WEB,
 	SideCondition.TAILWIND,
-	SideCondition.TOXIC_SPIKES
+	SideCondition.TOXIC_SPIKES,
+	SideCondition.G_MAX_CANNONADE ,
+    SideCondition.G_MAX_STEELSURGE ,
+    SideCondition.G_MAX_VINE_LASH ,
+    SideCondition.G_MAX_VOLCALITH ,
+    SideCondition.G_MAX_WILDFIRE ,
 ]
 
 fields = [

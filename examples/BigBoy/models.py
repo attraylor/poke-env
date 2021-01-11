@@ -280,13 +280,12 @@ class BigBoy_DQN(nn.Module):
 		state_embedding = F.relu(self.complete_state_linear5(state_embedding))
 
 		#TODO (longterm): move residuals
-		print(state_embedding.shape)
 		return state_embedding
 
 
 
 class Embedding_DQN(nn.Module):
-	def __init__(self, input_shape=10, pokemon_emb_dim = 32, move_emb_dim = 32, hidden_dim=128, hidden_dim2=64, output_shape=18):
+	def __init__(self, input_shape=10, pokemon_emb_dim = 32, move_emb_dim = 32, hidden_dim=128, hidden_dim2=64, output_shape=22):
 		self.pokemon_emb_dim = pokemon_emb_dim
 		self.move_emb_dim = move_emb_dim
 		super(DQN, self).__init__()
@@ -329,7 +328,7 @@ class Embedding_DQN(nn.Module):
 		return x
 
 class DQN(nn.Module):
-	def __init__(self, input_shape=10,hidden_dim=128, hidden_dim2=64, output_shape=18):
+	def __init__(self, input_shape=10,hidden_dim=128, hidden_dim2=64, output_shape=22):
 		super(DQN, self).__init__()
 		self.lin1 = nn.Linear(input_shape, hidden_dim)
 		self.lin2 = nn.Linear(hidden_dim, hidden_dim2)

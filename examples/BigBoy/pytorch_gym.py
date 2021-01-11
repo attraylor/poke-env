@@ -17,10 +17,16 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
+import argparse
+
 # import torchvision.transforms as T
 
+print("file", __file__)
+import sys
+print(sys.path)
+
 from poke_env.player_configuration import PlayerConfiguration
-from poke_env.player.env_player import Gen7EnvSinglePlayer
+from poke_env.player.env_player import Gen8EnvSinglePlayer
 from poke_env.player.random_player import RandomPlayer
 from poke_env.server_configuration import LocalhostServerConfiguration
 from poke_env.player.player import Player
@@ -158,7 +164,7 @@ def fit(player, nb_steps):
 	tq = trange(nb_steps, desc="Reward: 0")
 	episode_reward = 0
 	current_step_number = 0
-	optimize_every = 12 #TODO: raise to like 1k
+	optimize_every = 1000 #TODO: raise to like 1k
 	for i_episode in tq:
 		state = None
 		if state is None:  # start of a new episode
@@ -169,7 +175,7 @@ def fit(player, nb_steps):
 			for t in count():
 				# Select and perform an action
 
-				action = select_action(state, env_player.legal_action_mask(env_player._current_battle),
+				action = select_action(state, env_player.gen8_legal_action_mask(env_player._current_battle),
 						test=False, eps_start = EPS_START, eps_end = EPS_END,
 						eps_decay = EPS_DECAY,
 						nb_episodes = NB_TRAINING_STEPS, current_step = i_episode)
@@ -208,10 +214,11 @@ def test(player, nb_episodes):
 		if state is None:  # start of a new episode
 			# Initialize the environment and state
 			state = deepcopy(env_player.reset())
-			state = torch.autograd.Variable(torch.Tensor(state), requires_grad=False)
+			if type(state) in [list, np.ndarray]:
+				state = torch.autograd.Variable(torch.Tensor(state), requires_grad=False)
 			for t in count():
 				# Select and perform an action
-				action = select_action(state, env_player.legal_action_mask(env_player._current_battle),
+				action = select_action(state, env_player.gen8_legal_action_mask(env_player._current_battle),
 						test=True)
 				next_state, reward, done, info = env_player.step(action.item())
 				#next_state = deepcopy(torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False))
@@ -273,7 +280,7 @@ def optimize_model():
 	# to Transition of batch-arrays.
 	batch = Transition(*zip(*transitions))'''
 	train_data = torch.utils.data.DataLoader(memory, batch_size = BATCH_SIZE, collate_fn = custom_bigboy_collate)
-	batch_cap = 15
+	batch_cap = 2
 
 	for idx, batch in enumerate(train_data):
 		# Compute a mask of non-final states and concatenate the batch elements
@@ -297,8 +304,6 @@ def optimize_model():
 		if BATCH_SIZE == 1:
 			q_values = q_values.unsqueeze(1)
 		else:
-			print(q_values.shape)
-			print(action_batch.shape, type(action_batch))
 			state_action_values = q_values.gather(1, action_batch.unsqueeze(1))
 			#state_action_values torch.FloatTensor([q_values[i][action_batch[i]] for i in range(q_values.shape[0])])
 		# Compute V(s_{t+1}) for all next states.
@@ -338,179 +343,108 @@ def dqn_evaluation(player, nb_episodes):
 		% (player.n_won_battles, nb_episodes)
 	)
 
-BATCH_SIZE = 10
-GAMMA = 0.5
-EPS_START = 0.9
-EPS_END = 0.05
-EPS_DECAY = 200
-TARGET_UPDATE = 5
-IMPORT_EMBEDDINGS = True
-'''global steps_done
-sample = random.random()
-eps_threshold = EPS_END + (EPS_START - EPS_END) * \
-	math.exp(-1. * steps_done / EPS_DECAY)
-steps_done += 1
-if sample > eps_threshold:
-	with torch.no_grad():
-		# t.max(1) will return largest column value of each row.
-		# second column on max result is index of where max element was
-		# found, so we pick action with the larger expected reward.
-		return policy_net(state).max(1)[1].view(1, 1)
-else:
-	return torch.tensor([[random.randrange(n_actions)]], device=device, dtype=torch.long)'''
 
-env_player = BigBoyRLPlayer(
-	player_configuration=PlayerConfiguration("SimpleRLPlayer", None),
-	battle_format="gen7randombattle",
-	server_configuration=LocalhostServerConfiguration,
-)
 
-opponent = RandomPlayer(
-	player_configuration=PlayerConfiguration("Random player", None),
-	battle_format="gen7randombattle",
-	server_configuration=LocalhostServerConfiguration,
-)
+if __name__ == "__main__":
+	config = create_config("examples/BigBoy/bigboy_config.txt")
+	experiment_name = "dqn_vsrand"
+	writepath = os.path.join("results/",experiment_name)
+	if not os.path.exists(writepath):
+		os.makedirs(writepath)
+	BATCH_SIZE = 200
+	GAMMA = 0.5
+	EPS_START = 0.9
+	EPS_END = 0.05
+	EPS_DECAY = 200
+	TARGET_UPDATE = 5
+	IMPORT_EMBEDDINGS = True
+	env_player = BigBoyRLPlayer(
+		player_configuration=PlayerConfiguration("SimpleRLPlayer", None),
+		battle_format="gen8randombattle",
+		server_configuration=LocalhostServerConfiguration,
+	)
+
+	opponent = RandomPlayer(
+		player_configuration=PlayerConfiguration("Random player", None),
+		battle_format="gen8randombattle",
+		server_configuration=LocalhostServerConfiguration,
+	)
 
 
 
-second_opponent = MaxDamagePlayer(
-	player_configuration=PlayerConfiguration("Max damage player", None),
-	battle_format="gen7randombattle",
-	server_configuration=LocalhostServerConfiguration,
-)
+	second_opponent = MaxDamagePlayer(
+		player_configuration=PlayerConfiguration("Max damage player", None),
+		battle_format="gen8randombattle",
+		server_configuration=LocalhostServerConfiguration,
+	)
 
-third_opponent = SimpleHeuristicsPlayer(
-	player_configuration=PlayerConfiguration("Simple heuristic player", None),
-	battle_format="gen7randombattle",
-	server_configuration=LocalhostServerConfiguration,
-)
+	third_opponent = SimpleHeuristicsPlayer(
+		player_configuration=PlayerConfiguration("Simple heuristic player", None),
+		battle_format="gen8randombattle",
+		server_configuration=LocalhostServerConfiguration,
+	)
 
-n_actions = len(env_player.action_space)
-
-'''policy_net = DQN(input_shape=16, pokemon_emb_dim = 100, move_emb_dim = 100,
-					hidden_dim=128, hidden_dim2=64, output_shape=n_actions)
-target_net = DQN(input_shape=16, pokemon_emb_dim = 100, move_emb_dim = 100,
-					hidden_dim=128, hidden_dim2=64, output_shape=n_actions)
-
-if IMPORT_EMBEDDINGS == True:
-	words = []
-	words_to_wvs = {}
-	vecs = []
-	with open("../smogon_embeddings/embeddings/wvs_mwes.txt") as rf:
-		for line in rf:
-			split_line = line.strip().split("\t")
-			if len(split_line) == 2:
-				word = split_line[0]
-				#print(word)
-				vec = [float(i) for i in split_line[1].split(" ")]
-				words.append(word)
-				vecs.append(vec)
-				words_to_wvs[word] = vec
-	new_wvs = deepcopy(policy_net.pokemon_embedding.weight.detach().numpy())
-	wvs_counted = 0
-	for key in words_to_wvs:
-		if key[0] not in ["-", "@", "/"] and key[-1] not in ["-", "@", "/"]:
-			try:
-				idx = POKEDEX[to_id_str(key)]["num"]
-				new_wvs[idx] = words_to_wvs[key]
-				wvs_counted += 1
-				print(key)
-			except KeyError:
-				pass
-	print("wvs successfully loaded: {}".format(wvs_counted))'''
-config = create_config("examples/BigBoy/bigboy_config.txt")
-policy_net = BigBoy_DQN(config)
-
-target_net = BigBoy_DQN(config)
-'''policy_net = DQN(input_shape=33,
-					hidden_dim=128, hidden_dim2=64, output_shape=n_actions)
-target_net = DQN(input_shape=33,
-					hidden_dim=128, hidden_dim2=64, output_shape=n_actions)'''
-target_net.load_state_dict(policy_net.state_dict())
-target_net.eval()
-
-#optimizer = optim.RMSprop(policy_net.parameters())
-optimizer = optim.Adam(policy_net.parameters(), lr=0.00025)
-memory = ReplayMemory(10000)
-
-steps_done = 0
-
-loss_hist = []
-reward_hist = []
-
-NB_TRAINING_STEPS = 5000
-
-NB_EVALUATION_EPISODES = 100
-
-env_player.play_against(
-	env_algorithm=dqn_training,
-	opponent=opponent,
-	env_algorithm_kwargs={"nb_steps": NB_TRAINING_STEPS},
-)
+	n_actions = len(env_player.action_space)
 
 
-for chart_name, arr in [("loss", loss_hist), ("reward", reward_hist)]:
-	x = range(len(arr))
-	fig, ax = plt.subplots()
-	ax.plot(x, arr)
-	ax.set(xlabel = "batches", ylabel = chart_name, title = "{} hist over time".format(chart_name))
-	ax.grid()
-	fig.savefig("{}.png".format(chart_name))
-	plt.gcf().clear()
+	policy_net = BigBoy_DQN(config)
+
+	target_net = BigBoy_DQN(config)
+	target_net.load_state_dict(policy_net.state_dict())
+	target_net.eval()
+
+	#optimizer = optim.RMSprop(policy_net.parameters())
+	optimizer = optim.Adam(policy_net.parameters(), lr=0.00025)
+	memory = ReplayMemory(10000)
+
+	steps_done = 0
+
+	loss_hist = []
+	reward_hist = []
+
+	NB_TRAINING_STEPS = 5000
+	NB_EVALUATION_EPISODES = 100
+
+	env_player.play_against(
+		env_algorithm=dqn_training,
+		opponent=opponent,
+		env_algorithm_kwargs={"nb_steps": NB_TRAINING_STEPS},
+	)
+	model_path = os.path.join(writepath, "saved_model.torch")
+	torch.save(policy_net.state_dict(), model_path)
 
 
-print("Results against random player:")
-env_player.play_against(
-	env_algorithm=dqn_evaluation,
-	opponent=opponent,
-	env_algorithm_kwargs={"nb_episodes": NB_EVALUATION_EPISODES},
-)
-
-print("Results against max player:")
-env_player.play_against(
-	env_algorithm=dqn_evaluation,
-	opponent=second_opponent,
-	env_algorithm_kwargs={"nb_episodes": NB_EVALUATION_EPISODES},
-)
-
-print("Results against simple heuristic player:")
-env_player.play_against(
-	env_algorithm=dqn_evaluation,
-	opponent=third_opponent,
-	env_algorithm_kwargs={"nb_episodes": NB_EVALUATION_EPISODES},
-)
-
-print('Complete')
-#env.render()
-env_player.close()
+	for chart_name, arr in [("loss", loss_hist), ("reward", reward_hist)]:
+		x = range(len(arr))
+		fig, ax = plt.subplots()
+		ax.plot(x, arr)
+		ax.set(xlabel = "batches", ylabel = chart_name, title = "{} hist over time".format(chart_name))
+		ax.grid()
+		fig.savefig(os.path.join(writepath, "{}.png".format(chart_name)))
+		plt.gcf().clear()
 
 
-'''edited_ou_list = "Alakazam_-_Mega,Alakazam,Azumarill,Blacephalon,Celesteela,Chansey,Charizard_-_Mega_-_X,Charizard_-_Mega_-_Y,Charizard,Clefable,Diancie,Diancie_-_Mega,Excadrill,Ferrothorn,Garchomp,Garchomp_-_Mega,Gliscor,Greninja,Greninja_-_Ash,Gyarados,Gyarados_-_Mega,Hawlucha,Heatran,Jirachi,Kartana,Keldeo,Kommo_-_O,Kyurem_-_Black,Landorus_-_Therian,Lopunny_-_Mega,Lopunny,Magearna,Magnezone,Mawile,Mawile_-_Mega,Medicham_-_Mega,Medicham,Mew,Pelipper,Rotom_-_Wash,Scizor,Scizor_-_Mega,Serperior,Skarmory,Swampert,Swampert_-_Mega,Tangrowth,Tapu_Bulu,Tapu_Fini,Tapu_Koko,Tapu_Lele,Tornadus_-_Therian,Toxapex,Tyranitar,Tyranitar_-_Mega,Victini,Volcarona,Zapdos"
+	print("Results against random player:")
+	env_player.play_against(
+		env_algorithm=dqn_evaluation,
+		opponent=opponent,
+		env_algorithm_kwargs={"nb_episodes": NB_EVALUATION_EPISODES},
+	)
 
-words = []
-words_to_wvs = {}
-vecs = []
+	print("Results against max player:")
+	env_player.play_against(
+		env_algorithm=dqn_evaluation,
+		opponent=second_opponent,
+		env_algorithm_kwargs={"nb_episodes": NB_EVALUATION_EPISODES},
+	)
 
-ou_words = []
-for x in edited_ou_list.split(","):
-	try:
-		idx = POKEDEX[to_id_str(x)]["num"]
-		a = policy_net.pokemon_embedding.weight[idx].detach().numpy()
-		words_to_wvs[to_id_str(x)] = a
-		ou_words.append(to_id_str(x))
-	except KeyError:
-		print("not found", x)
-#ou_words = [x.lower() for x in edited_ou_list.split(",")]
+	print("Results against simple heuristic player:")
+	env_player.play_against(
+		env_algorithm=dqn_evaluation,
+		opponent=third_opponent,
+		env_algorithm_kwargs={"nb_episodes": NB_EVALUATION_EPISODES},
+	)
 
-pca = PCA(n_components=2)
-result = pca.fit_transform([words_to_wvs[word] for word in ou_words])
-
-#result = TSNE(n_components=2).fit_transform([words_to_wvs[word] for word in ou_words])
-fig, ax = plt.subplots()
-ax.plot(result[:, 0], result[:, 1], 'o')
-ax.set_title('OU words')
-ax.set_yticklabels([]) #Hide ticks
-ax.set_xticklabels([]) #Hide ticks
-for i, word in enumerate(ou_words):
-	plt.annotate(word.replace("_-_", "-"), xy=(result[i, 0], result[i, 1]))
-plt.show()'''
+	print('Complete')
+	#env.render()
+	env_player.close()

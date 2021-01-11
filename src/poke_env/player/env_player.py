@@ -541,6 +541,25 @@ class Gen7EnvSinglePlayer(EnvPlayer):  # pyre-ignore
         else:
             return self.choose_random_move(battle)
 
+    def gen8_legal_action_mask(self, battle : Battle) -> List:
+        legal_actions = [0] * 22
+        if not battle.force_switch:
+            for i in range(0, len(battle.available_moves)):
+                legal_actions[i] = 1
+            if battle.can_z_move:
+                for i in range(4, 4+len(battle.active_pokemon.available_z_moves)):
+                    legal_actions[i] = 1
+            if battle.can_mega_evolve:
+                for i in range(8, 8 + len(battle.available_moves)):
+                    legal_actions[i] = 1
+            if battle.can_dynamax:
+                for i in range(12, 12 + len(battle.available_moves)):
+                    legal_actions[i] = 1
+        for i in range(16, 16 + len(battle.available_switches)):
+            legal_actions[i] += 1
+        return legal_actions
+
+
     @property
     def action_space(self) -> List:
         """The action space for gen 7 single battles.

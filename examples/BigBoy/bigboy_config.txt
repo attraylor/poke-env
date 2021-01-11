@@ -14,5 +14,5 @@ move_encoder_output_dim	16
 opponent_hidden_dim	17
 opponent_output_dim	8
 complete_state_hidden_dim	128
-complete_state_output_dim	18
+complete_state_output_dim	22
 seed	420
