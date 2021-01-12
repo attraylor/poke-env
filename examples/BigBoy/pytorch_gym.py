@@ -9,6 +9,7 @@ from itertools import count
 from tqdm import trange
 from copy import deepcopy
 import os
+import wandb
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 # from PIL import Image
 
@@ -158,13 +159,13 @@ def custom_bigboy_collate(batch):
 	return state_batch, action_batch, next_state_batch, reward_batch
 
 def fit(player, nb_steps):
+	global config
 	global reward_hist
 	episode_durations = []
 	#self.reset_states() #TODO: Impl
 	tq = trange(nb_steps, desc="Reward: 0")
 	episode_reward = 0
 	current_step_number = 0
-	optimize_every = 1000 #TODO: raise to like 1k
 	for i_episode in tq:
 		state = None
 		if state is None:  # start of a new episode
@@ -176,13 +177,14 @@ def fit(player, nb_steps):
 				# Select and perform an action
 
 				action = select_action(state, env_player.gen8_legal_action_mask(env_player._current_battle),
-						test=False, eps_start = EPS_START, eps_end = EPS_END,
-						eps_decay = EPS_DECAY,
-						nb_episodes = NB_TRAINING_STEPS, current_step = i_episode)
+						test=False, eps_start = config.eps_start, eps_end = config.eps_end,
+						eps_decay = config.eps_decay,
+						nb_episodes = config.nb_training_steps, current_step = i_episode)
 				next_state, reward, done, info = env_player.step(action.item())
 				#next_state = deepcopy(torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False))
 				reward = torch.FloatTensor([reward])
 				episode_reward += reward
+				wandb.log({"reward": episode_reward})
 				tq.set_description("Reward: {:.3f}".format(episode_reward.item()))
 				reward_hist.append(episode_reward.item())
 				# Store the transition in memory
@@ -193,7 +195,7 @@ def fit(player, nb_steps):
 
 				# Perform one step of the optimization (on the policy network)
 				current_step_number += 1
-				if current_step_number % optimize_every == 0:
+				if current_step_number % config.optimize_every == 0:
 					optimize_model()
 				if done:
 					episode_durations.append(t + 1)
@@ -202,7 +204,7 @@ def fit(player, nb_steps):
 					break
 			# Update the target network, copying all weights and biases in DQN
 
-			if i_episode % TARGET_UPDATE == 0:
+			if i_episode % config.target_update == 0:
 				target_net.load_state_dict(policy_net.state_dict())
 	print("avg battle length: {}".format(sum(episode_durations) / len(episode_durations)))
 
@@ -272,15 +274,16 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 
 def optimize_model():
 	global loss_hist
-	if len(memory) < BATCH_SIZE:
+	global config
+	if len(memory) < config.batch_size:
 		return
-	'''transitions = memory.sample(BATCH_SIZE)
+	'''transitions = memory.sample(config.batch_size)
 	# Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
 	# detailed explanation). This converts batch-array of Transitions
 	# to Transition of batch-arrays.
 	batch = Transition(*zip(*transitions))'''
-	train_data = torch.utils.data.DataLoader(memory, batch_size = BATCH_SIZE, collate_fn = custom_bigboy_collate)
-	batch_cap = 2
+	train_data = torch.utils.data.DataLoader(memory, batch_size = config.batch_size, collate_fn = custom_bigboy_collate)
+	batch_cap = config.batch_cap
 
 	for idx, batch in enumerate(train_data):
 		# Compute a mask of non-final states and concatenate the batch elements
@@ -301,7 +304,7 @@ def optimize_model():
 		# Compute Q(s_t, a) - the model computes Q(s_t), then we select the
 		# columns of actions taken. These are the actions which would've been taken
 		# for each batch state according to policy_net
-		if BATCH_SIZE == 1:
+		if config.batch_size == 1:
 			q_values = q_values.unsqueeze(1)
 		else:
 			state_action_values = q_values.gather(1, action_batch.unsqueeze(1))
@@ -311,11 +314,11 @@ def optimize_model():
 		# on the "older" target_net; selecting their best reward with max(1)[0].
 		# This is merged based on the mask, such that we'll have either the expected
 		# state value or 0 in case the state was final.
-		next_state_values = torch.zeros(BATCH_SIZE)
+		next_state_values = torch.zeros(config.batch_size)
 		next_state_values = target_net(next_state).max(1)[0].detach()
 		#next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
 		# Compute the expected Q values
-		expected_state_action_values = (next_state_values * GAMMA) + reward_batch
+		expected_state_action_values = (next_state_values * config.gamma) + reward_batch
 		# Compute Huber loss
 		loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
 		loss_hist.append(loss)
@@ -346,18 +349,47 @@ def dqn_evaluation(player, nb_episodes):
 
 
 if __name__ == "__main__":
-	config = create_config("examples/BigBoy/bigboy_config.txt")
-	experiment_name = "dqn_vsrand"
-	writepath = os.path.join("results/",experiment_name)
+	global config
+	hyperparameter_defaults = dict(
+		experiment_name = "BigBoy",
+		batch_size = 200,
+		batch_cap = 2,
+		optimize_every = 1000,
+		gamma = .5,
+		eps_start = .9,
+		eps_end = .05,
+		eps_decay = 200,
+		target_update = 5,
+		learning_rate = 0.00025,
+		memory_size = 10000,
+		nb_training_steps = 5000,
+		nb_evaluation_episodes = 100,
+		species_emb_dim = 3,
+		move_emb_dim = 3,
+		item_emb_dim = 1,
+		ability_emb_dim = 1,
+		type_emb_dim = 3,
+		status_emb_dim = 1,
+		weather_emb_dim = 1,
+		pokemon_embedding_hidden_dim = 4,
+		team_embedding_hidden_dim = 4,
+		move_encoder_hidden_dim = 3,
+		opponent_hidden_dim = 3,
+		complete_state_hidden_dim = 5,
+		complete_state_output_dim = 22,
+		seed = 420,
+		n_layers = 5
+	)
+
+	wandb.init(config=hyperparameter_defaults)
+	config = wandb.config
+
+	writepath = os.path.join("results/",config.experiment_name)
 	if not os.path.exists(writepath):
 		os.makedirs(writepath)
-	BATCH_SIZE = 200
-	GAMMA = 0.5
-	EPS_START = 0.9
-	EPS_END = 0.05
-	EPS_DECAY = 200
-	TARGET_UPDATE = 5
-	IMPORT_EMBEDDINGS = True
+
+
+
 	env_player = BigBoyRLPlayer(
 		player_configuration=PlayerConfiguration("SimpleRLPlayer", None),
 		battle_format="gen8randombattle",
@@ -394,21 +426,18 @@ if __name__ == "__main__":
 	target_net.eval()
 
 	#optimizer = optim.RMSprop(policy_net.parameters())
-	optimizer = optim.Adam(policy_net.parameters(), lr=0.00025)
-	memory = ReplayMemory(10000)
+	optimizer = optim.Adam(policy_net.parameters(), lr=config.learning_rate)
+	memory = ReplayMemory(config.memory_size)
 
 	steps_done = 0
 
 	loss_hist = []
 	reward_hist = []
 
-	NB_TRAINING_STEPS = 5000
-	NB_EVALUATION_EPISODES = 100
-
 	env_player.play_against(
 		env_algorithm=dqn_training,
 		opponent=opponent,
-		env_algorithm_kwargs={"nb_steps": NB_TRAINING_STEPS},
+		env_algorithm_kwargs={"nb_steps": config.nb_training_steps},
 	)
 	model_path = os.path.join(writepath, "saved_model.torch")
 	torch.save(policy_net.state_dict(), model_path)
@@ -428,21 +457,21 @@ if __name__ == "__main__":
 	env_player.play_against(
 		env_algorithm=dqn_evaluation,
 		opponent=opponent,
-		env_algorithm_kwargs={"nb_episodes": NB_EVALUATION_EPISODES},
+		env_algorithm_kwargs={"nb_episodes": config.nb_evaluation_episodes},
 	)
 
 	print("Results against max player:")
 	env_player.play_against(
 		env_algorithm=dqn_evaluation,
 		opponent=second_opponent,
-		env_algorithm_kwargs={"nb_episodes": NB_EVALUATION_EPISODES},
+		env_algorithm_kwargs={"nb_episodes": config.nb_evaluation_episodes},
 	)
 
 	print("Results against simple heuristic player:")
 	env_player.play_against(
 		env_algorithm=dqn_evaluation,
 		opponent=third_opponent,
-		env_algorithm_kwargs={"nb_episodes": NB_EVALUATION_EPISODES},
+		env_algorithm_kwargs={"nb_episodes": config.nb_evaluation_episodes},
 	)
 
 	print('Complete')

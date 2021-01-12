@@ -1,0 +1,60 @@
+program: examples/BigBoy/pytorch_gym.py
+metric:
+  name: reward
+  goal: maximize
+method: random
+parameters:
+  batch_size:
+    value: 200
+  batch_cap:
+    value: 2
+  optimize_every:
+    value: 1000
+  gamma:
+    value: .5
+  eps_start:
+    value: .9
+  eps_end:
+    value: .05
+  eps_decay:
+    value: 200
+  target_update:
+    value: 5
+  learning_rate:
+    values: 0.00025
+  memory_size:
+    value: 10000
+  nb_training_steps:
+    value: 5000
+  nb_evaluation_episodes:
+    value: 100
+  species_emb_dim:
+    value: 3
+  move_emb_dim:
+    value: 3
+  item_emb_dim:
+    value: 1
+  ability_emb_dim:
+    value: 1
+  type_emb_dim:
+    value: 3
+  status_emb_dim:
+    value: 1
+  weather_emb_dim:
+    value: 1
+  pokemon_embedding_hidden_dim:
+    value: 4
+  team_embedding_hidden_dim:
+    value: 5
+  move_encoder_hidden_dim:
+    value: 3
+  opponent_hidden_dim:
+    value: 2
+  complete_state_hidden_dim:
+    value: 5
+  complete_state_output_dim:
+    value: 22
+  seed:
+    value: 420
+  n_layers:
+    value: 5

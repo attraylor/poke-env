@@ -49,13 +49,13 @@ class BigBoy_DQN(nn.Module):
 
 		super(BigBoy_DQN, self).__init__()
 		#Embedding dimension sizes
-		self.species_emb_dim = config["species_emb_dim"]
-		self.move_emb_dim = config["move_emb_dim"]
-		self.item_emb_dim = config["item_emb_dim"]
-		self.ability_emb_dim = config["ability_emb_dim"]
-		self.type_emb_dim = config["type_emb_dim"]
-		self.status_emb_dim = config["status_emb_dim"]
-		self.weather_emb_dim = config["weather_emb_dim"]
+		self.species_emb_dim = config.species_emb_dim
+		self.move_emb_dim = config.move_emb_dim
+		self.item_emb_dim = config.item_emb_dim
+		self.ability_emb_dim = config.ability_emb_dim
+		self.type_emb_dim = config.type_emb_dim
+		self.status_emb_dim = config.status_emb_dim
+		self.weather_emb_dim = config.weather_emb_dim
 
 		self.species_embedding = nn.Embedding(len(STR_TO_ID["species"]) + 1, self.species_emb_dim)
 		self.move_embedding = nn.Embedding(len(STR_TO_ID["moves"]) + 1, self.move_emb_dim)
@@ -67,40 +67,40 @@ class BigBoy_DQN(nn.Module):
 		self.weather_embedding = nn.Embedding(len(relevant_conditions.weathers), self.weather_emb_dim)
 
 		#Pokemon_embedder
-		pokemon_emb_input_dim = self.species_emb_dim + 4 * config["move_encoder_output_dim"] + self.item_emb_dim + self.ability_emb_dim + 2 * self.type_emb_dim + self.status_emb_dim + 1 + 6 + 7 + len(relevant_conditions.volatiles) #TODO: + scalars
-		self.lin1 = nn.Linear(pokemon_emb_input_dim, config["pokemon_embedding_hidden_dim"])
-		self.lin2 = nn.Linear(config["pokemon_embedding_hidden_dim"], config["pokemon_embedding_hidden_dim"])
-		self.lin3 = nn.Linear(config["pokemon_embedding_hidden_dim"], config["pokemon_embedding_hidden_dim"])
-		self.lin4 = nn.Linear(config["pokemon_embedding_hidden_dim"], config["pokemon_embedding_hidden_dim"])
-		self.lin5 = nn.Linear(config["pokemon_embedding_hidden_dim"], config["pokemon_embedding_output_dim"])
+		pokemon_emb_input_dim = self.species_emb_dim + 4 * config.move_encoder_hidden_dim + self.item_emb_dim + self.ability_emb_dim + 2 * self.type_emb_dim + self.status_emb_dim + 1 + 6 + 7 + len(relevant_conditions.volatiles) #TODO: + scalars
+		self.lin1 = nn.Linear(pokemon_emb_input_dim, config.pokemon_embedding_hidden_dim)
+		self.lin2 = nn.Linear(config.pokemon_embedding_hidden_dim, config.pokemon_embedding_hidden_dim)
+		self.lin3 = nn.Linear(config.pokemon_embedding_hidden_dim, config.pokemon_embedding_hidden_dim)
+		self.lin4 = nn.Linear(config.pokemon_embedding_hidden_dim, config.pokemon_embedding_hidden_dim)
+		self.lin5 = nn.Linear(config.pokemon_embedding_hidden_dim, config.pokemon_embedding_hidden_dim)
 
 		#team_embedding network
-		team_embedding_input_dim = 6 * config["pokemon_embedding_output_dim"]
-		self.team_embed_1 = nn.Linear(team_embedding_input_dim, config["team_embedding_hidden_dim"])
-		self.team_embed_2 = nn.Linear(config["team_embedding_hidden_dim"], config["team_embedding_hidden_dim"])
-		self.team_embed_3 = nn.Linear(config["team_embedding_hidden_dim"], config["team_embedding_output_dim"])
+		team_embedding_input_dim = 6 * config.pokemon_embedding_hidden_dim
+		self.team_embed_1 = nn.Linear(team_embedding_input_dim, config.team_embedding_hidden_dim)
+		self.team_embed_2 = nn.Linear(config.team_embedding_hidden_dim, config.team_embedding_hidden_dim)
+		self.team_embed_3 = nn.Linear(config.team_embedding_hidden_dim, config.team_embedding_hidden_dim)
 
 		#move_encoder_input_size = move emb dim + type emb dim + power (1) + P/S/O (3) + Accuracy (1)
 		move_encoder_input_dim = (self.move_emb_dim) + (self.type_emb_dim) + 3
-		self.move_encoder_1 = nn.Linear(move_encoder_input_dim,config["move_encoder_hidden_dim"])
-		self.move_encoder_2 = nn.Linear(config["move_encoder_hidden_dim"],config["move_encoder_hidden_dim"])
-		self.move_encoder_3 = nn.Linear(config["move_encoder_hidden_dim"],config["move_encoder_hidden_dim"])
-		self.move_encoder_4 = nn.Linear(config["move_encoder_hidden_dim"],config["move_encoder_hidden_dim"])
-		self.move_encoder_5 = nn.Linear(config["move_encoder_hidden_dim"],config["move_encoder_output_dim"])
+		self.move_encoder_1 = nn.Linear(move_encoder_input_dim,config.move_encoder_hidden_dim)
+		self.move_encoder_2 = nn.Linear(config.move_encoder_hidden_dim,config.move_encoder_hidden_dim)
+		self.move_encoder_3 = nn.Linear(config.move_encoder_hidden_dim,config.move_encoder_hidden_dim)
+		self.move_encoder_4 = nn.Linear(config.move_encoder_hidden_dim,config.move_encoder_hidden_dim)
+		self.move_encoder_5 = nn.Linear(config.move_encoder_hidden_dim,config.move_encoder_hidden_dim)
 
 		#opponent_team network
 		#Magic numbers: 1 (hp %), 6 (base stats), 7 (boosts)
 		opponent_input_dim = self.species_emb_dim + 2 * self.type_emb_dim + self.status_emb_dim + 1 + 6 + 7 + len(relevant_conditions.volatiles)
-		self.opponent_embed_1 = nn.Linear(opponent_input_dim, config["opponent_hidden_dim"])
-		self.opponent_embed_2 = nn.Linear(config["opponent_hidden_dim"], config["opponent_hidden_dim"])
-		self.opponent_embed_3 = nn.Linear(config["opponent_hidden_dim"], config["opponent_output_dim"])
+		self.opponent_embed_1 = nn.Linear(opponent_input_dim, config.opponent_hidden_dim)
+		self.opponent_embed_2 = nn.Linear(config.opponent_hidden_dim, config.opponent_hidden_dim)
+		self.opponent_embed_3 = nn.Linear(config.opponent_hidden_dim, config.opponent_hidden_dim)
 
-		complete_state_input_dim = config["team_embedding_output_dim"] + config["opponent_output_dim"] + self.weather_emb_dim + 2 * len(relevant_conditions.side_conditions) + len(relevant_conditions.fields)
-		self.complete_state_linear1 = nn.Linear(complete_state_input_dim, config["complete_state_hidden_dim"])
-		self.complete_state_linear2 = nn.Linear(config["complete_state_hidden_dim"], config["complete_state_hidden_dim"])
-		self.complete_state_linear3 = nn.Linear(config["complete_state_hidden_dim"], config["complete_state_hidden_dim"])
-		self.complete_state_linear4 = nn.Linear(config["complete_state_hidden_dim"], config["complete_state_hidden_dim"])
-		self.complete_state_linear5 = nn.Linear(config["complete_state_hidden_dim"], config["complete_state_output_dim"])
+		complete_state_input_dim = config.team_embedding_hidden_dim + config.opponent_hidden_dim + self.weather_emb_dim + 2 * len(relevant_conditions.side_conditions) + len(relevant_conditions.fields)
+		self.complete_state_linear1 = nn.Linear(complete_state_input_dim, config.complete_state_hidden_dim)
+		self.complete_state_linear2 = nn.Linear(config.complete_state_hidden_dim, config.complete_state_hidden_dim)
+		self.complete_state_linear3 = nn.Linear(config.complete_state_hidden_dim, config.complete_state_hidden_dim)
+		self.complete_state_linear4 = nn.Linear(config.complete_state_hidden_dim, config.complete_state_hidden_dim)
+		self.complete_state_linear5 = nn.Linear(config.complete_state_hidden_dim, config.complete_state_output_dim)
 
 	def forward(self, state_dict):
 		"""State representation right now:
@@ -215,7 +215,7 @@ class BigBoy_DQN(nn.Module):
 			pokemon_representation = self.lin5(x)
 			pokemon_vectors.append(pokemon_representation)
 
-		#Pokemon_vectors: Size 6x pokemon_embedder_output_dim
+		#Pokemon_vectors: Size 6x pokemon_embedder_hidden_dim
 		concatenated_pokemon = torch.cat(pokemon_vectors, dim=1)
 		team_embedding =  F.relu(self.team_embed_1(concatenated_pokemon))
 		team_embedding =  F.relu(self.team_embed_2(team_embedding))
@@ -257,8 +257,9 @@ class BigBoy_DQN(nn.Module):
 
 
 		weather_embedding = self.weather_embedding(torch.LongTensor(state_dict["weather"]))
+
 		if len(weather_embedding.shape) == 3:
-			weather_embedding = weather_embedding.squeeze()
+			weather_embedding = weather_embedding.squeeze(2)
 
 
 		vectors = [
@@ -270,8 +271,12 @@ class BigBoy_DQN(nn.Module):
 			state_dict["fields"]
 		]
 		vectors = homogenize_vectors(vectors)
-
-		complete_state_concatenation = torch.cat(vectors, dim=1)
+		try:
+			complete_state_concatenation = torch.cat(vectors, dim=1)
+		except RuntimeError:
+			print([vector.shape for vector in vectors])
+			print(self.weather_embedding(torch.LongTensor(state_dict["weather"])).shape)
+			sys.exit(1)
 
 		state_embedding = F.relu(self.complete_state_linear1(complete_state_concatenation))
 		state_embedding = F.relu(self.complete_state_linear2(state_embedding))
