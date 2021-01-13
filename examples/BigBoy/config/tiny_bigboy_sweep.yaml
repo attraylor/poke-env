@@ -56,5 +56,5 @@ parameters:
     value: 22
   seed:
     value: 420
-  n_layers:
-    value: 5
+  num_layers:
+    value: 1

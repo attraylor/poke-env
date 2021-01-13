@@ -68,39 +68,39 @@ class BigBoy_DQN(nn.Module):
 
 		#Pokemon_embedder
 		pokemon_emb_input_dim = self.species_emb_dim + 4 * config.move_encoder_hidden_dim + self.item_emb_dim + self.ability_emb_dim + 2 * self.type_emb_dim + self.status_emb_dim + 1 + 6 + 7 + len(relevant_conditions.volatiles) #TODO: + scalars
-		self.lin1 = nn.Linear(pokemon_emb_input_dim, config.pokemon_embedding_hidden_dim)
-		self.lin2 = nn.Linear(config.pokemon_embedding_hidden_dim, config.pokemon_embedding_hidden_dim)
-		self.lin3 = nn.Linear(config.pokemon_embedding_hidden_dim, config.pokemon_embedding_hidden_dim)
-		self.lin4 = nn.Linear(config.pokemon_embedding_hidden_dim, config.pokemon_embedding_hidden_dim)
-		self.lin5 = nn.Linear(config.pokemon_embedding_hidden_dim, config.pokemon_embedding_hidden_dim)
+		self.pokemon_emb_linear_layers = []
+		self.pokemon_emb_linear_layers.append(nn.Linear(pokemon_emb_input_dim, config.pokemon_embedding_hidden_dim))
+		for i in range(1, config.num_layers):
+			self.pokemon_emb_linear_layers.append(nn.Linear(config.pokemon_embedding_hidden_dim, config.pokemon_embedding_hidden_dim))
 
 		#team_embedding network
 		team_embedding_input_dim = 6 * config.pokemon_embedding_hidden_dim
-		self.team_embed_1 = nn.Linear(team_embedding_input_dim, config.team_embedding_hidden_dim)
-		self.team_embed_2 = nn.Linear(config.team_embedding_hidden_dim, config.team_embedding_hidden_dim)
-		self.team_embed_3 = nn.Linear(config.team_embedding_hidden_dim, config.team_embedding_hidden_dim)
+		self.team_embedding_linear_layers = []
+		self.team_embedding_linear_layers.append(nn.Linear(team_embedding_input_dim, config.team_embedding_hidden_dim))
+		for i in range(1, config.num_layers):
+			self.team_embedding_linear_layers.append(nn.Linear(config.team_embedding_hidden_dim, config.team_embedding_hidden_dim))
 
 		#move_encoder_input_size = move emb dim + type emb dim + power (1) + P/S/O (3) + Accuracy (1)
 		move_encoder_input_dim = (self.move_emb_dim) + (self.type_emb_dim) + 3
-		self.move_encoder_1 = nn.Linear(move_encoder_input_dim,config.move_encoder_hidden_dim)
-		self.move_encoder_2 = nn.Linear(config.move_encoder_hidden_dim,config.move_encoder_hidden_dim)
-		self.move_encoder_3 = nn.Linear(config.move_encoder_hidden_dim,config.move_encoder_hidden_dim)
-		self.move_encoder_4 = nn.Linear(config.move_encoder_hidden_dim,config.move_encoder_hidden_dim)
-		self.move_encoder_5 = nn.Linear(config.move_encoder_hidden_dim,config.move_encoder_hidden_dim)
+		self.move_encoder_linear_layers = []
+		self.move_encoder_linear_layers.append(nn.Linear(move_encoder_input_dim,config.move_encoder_hidden_dim))
+		for i in range(1, config.num_layers):
+			self.move_encoder_linear_layers.append(nn.Linear(config.move_encoder_hidden_dim,config.move_encoder_hidden_dim))
 
 		#opponent_team network
 		#Magic numbers: 1 (hp %), 6 (base stats), 7 (boosts)
 		opponent_input_dim = self.species_emb_dim + 2 * self.type_emb_dim + self.status_emb_dim + 1 + 6 + 7 + len(relevant_conditions.volatiles)
-		self.opponent_embed_1 = nn.Linear(opponent_input_dim, config.opponent_hidden_dim)
-		self.opponent_embed_2 = nn.Linear(config.opponent_hidden_dim, config.opponent_hidden_dim)
-		self.opponent_embed_3 = nn.Linear(config.opponent_hidden_dim, config.opponent_hidden_dim)
+		self.opponent_linear_layers = []
+		self.opponent_linear_layers.append(nn.Linear(opponent_input_dim, config.opponent_hidden_dim))
+		for i in range(1, config.num_layers):
+			self.opponent_linear_layers.append(nn.Linear(config.opponent_hidden_dim, config.opponent_hidden_dim))
 
 		complete_state_input_dim = config.team_embedding_hidden_dim + config.opponent_hidden_dim + self.weather_emb_dim + 2 * len(relevant_conditions.side_conditions) + len(relevant_conditions.fields)
-		self.complete_state_linear1 = nn.Linear(complete_state_input_dim, config.complete_state_hidden_dim)
-		self.complete_state_linear2 = nn.Linear(config.complete_state_hidden_dim, config.complete_state_hidden_dim)
-		self.complete_state_linear3 = nn.Linear(config.complete_state_hidden_dim, config.complete_state_hidden_dim)
-		self.complete_state_linear4 = nn.Linear(config.complete_state_hidden_dim, config.complete_state_hidden_dim)
-		self.complete_state_linear5 = nn.Linear(config.complete_state_hidden_dim, config.complete_state_output_dim)
+		self.complete_state_linear_layers = []
+		self.complete_state_linear_layers.append(nn.Linear(complete_state_input_dim, config.complete_state_hidden_dim))
+		for i in range(1, config.num_layers):
+			self.complete_state_linear_layers.append(nn.Linear(config.complete_state_hidden_dim, config.complete_state_hidden_dim))
+		self.complete_state_linear_layers.append(nn.Linear(config.complete_state_hidden_dim, config.complete_state_output_dim))
 
 	def forward(self, state_dict):
 		"""State representation right now:
@@ -140,12 +140,9 @@ class BigBoy_DQN(nn.Module):
 			vectors[4] = vectors[4].unsqueeze(-1)
 			if len(vectors[0].shape) == 2: #Batch size is 1: #TODO doesnt cover for 1dims
 				vectors = [vector.unsqueeze(0) for vector in vectors]
-			concatenated_input_for_move_encoder = torch.cat(vectors, dim = 2) #B x 4 x (M_E_D) + (T_E_D) + 3
-			x = F.relu(self.move_encoder_1(concatenated_input_for_move_encoder))
-			x = F.relu(self.move_encoder_2(x))
-			x = F.relu(self.move_encoder_3(x))
-			x = F.relu(self.move_encoder_4(x))
-			x = F.relu(self.move_encoder_5(x))
+			x = torch.cat(vectors, dim = 2) #B x 4 x (M_E_D) + (T_E_D) + 3
+			for layer in self.move_encoder_linear_layers:
+				x = F.relu(layer(x))
 
 			#Final output size: B X 4 X self.move_encoder_output_size
 			move_encoder_output = x
@@ -206,20 +203,17 @@ class BigBoy_DQN(nn.Module):
 				pokemon_tensors.append(tensor)'''
 
 
-			concatenated_input_for_pokemon_encoder = torch.cat(pokemon_tensors, dim=1)
-
-			x = F.relu(self.lin1(concatenated_input_for_pokemon_encoder))
-			x = F.relu(self.lin2(x))
-			x = F.relu(self.lin3(x))
-			x = F.relu(self.lin4(x))
-			pokemon_representation = self.lin5(x)
+			x = torch.cat(pokemon_tensors, dim=1)
+			for layer in self.pokemon_emb_linear_layers:
+				x = F.relu(layer(x))
+			pokemon_representation = x
 			pokemon_vectors.append(pokemon_representation)
 
 		#Pokemon_vectors: Size 6x pokemon_embedder_hidden_dim
-		concatenated_pokemon = torch.cat(pokemon_vectors, dim=1)
-		team_embedding =  F.relu(self.team_embed_1(concatenated_pokemon))
-		team_embedding =  F.relu(self.team_embed_2(team_embedding))
-		team_embedding =  F.relu(self.team_embed_3(team_embedding))
+		x = torch.cat(pokemon_vectors, dim=1)
+		for layer in self.team_embedding_linear_layers:
+			x =  F.relu(layer(x))
+		team_embedding =  x
 
 		#opponent_team_embedding
 		opponent_team = []
@@ -249,11 +243,11 @@ class BigBoy_DQN(nn.Module):
 			opponent_tensors = homogenize_vectors(vectors)
 
 			concatenated_input_for_pokemon_encoder = torch.cat(opponent_tensors, dim=1)
-			opponent_team = concatenated_input_for_pokemon_encoder
+			x = concatenated_input_for_pokemon_encoder
 			#TODO (longterm): Fix this after we know more about opponent's team
-		opponent_embedding =  F.relu(self.opponent_embed_1(opponent_team))
-		opponent_embedding =  F.relu(self.opponent_embed_2(opponent_embedding))
-		opponent_embedding =  F.relu(self.opponent_embed_3(opponent_embedding))
+		for layer in self.opponent_linear_layers:
+			x =  F.relu(layer(x))
+		opponent_embedding =  x
 
 
 		weather_embedding = self.weather_embedding(torch.LongTensor(state_dict["weather"]))
@@ -278,11 +272,10 @@ class BigBoy_DQN(nn.Module):
 			print(self.weather_embedding(torch.LongTensor(state_dict["weather"])).shape)
 			sys.exit(1)
 
-		state_embedding = F.relu(self.complete_state_linear1(complete_state_concatenation))
-		state_embedding = F.relu(self.complete_state_linear2(state_embedding))
-		state_embedding = F.relu(self.complete_state_linear3(state_embedding))
-		state_embedding = F.relu(self.complete_state_linear4(state_embedding))
-		state_embedding = F.relu(self.complete_state_linear5(state_embedding))
+		x = complete_state_concatenation
+		for layer in self.complete_state_linear_layers[:-1]:
+			x = F.relu(layer(x))
+		state_embedding = self.complete_state_linear_layers[-1](x)
 
 		#TODO (longterm): move residuals
 		return state_embedding

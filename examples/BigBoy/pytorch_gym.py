@@ -386,7 +386,7 @@ if __name__ == "__main__":
 		complete_state_hidden_dim = 5,
 		complete_state_output_dim = 22,
 		seed = 420,
-		n_layers = 5
+		num_layers = 1
 	)
 
 	wandb.init(config=hyperparameter_defaults)
