@@ -346,6 +346,14 @@ def dqn_evaluation(player, nb_episodes):
 		% (player.n_won_battles, nb_episodes)
 	)
 
+from poke_env.teambuilder.teambuilder import Teambuilder
+
+class RandomTeamFromPool(Teambuilder):
+    def __init__(self, teams):
+        self.teams = [self.join_team(self.parse_showdown_team(team)) for team in teams]
+
+    def yield_team(self):
+        return np.random.choice(self.teams)
 
 
 if __name__ == "__main__":
@@ -389,16 +397,136 @@ if __name__ == "__main__":
 		os.makedirs(writepath)
 
 
+	team_1 = """
+Goodra (M) @ Assault Vest
+Ability: Sap Sipper
+EVs: 248 HP / 252 SpA / 8 Spe
+Modest Nature
+IVs: 0 Atk
+- Dragon Pulse
+- Flamethrower
+- Sludge Wave
+- Thunderbolt
+
+Sylveon (M) @ Leftovers
+Ability: Pixilate
+EVs: 248 HP / 244 Def / 16 SpD
+Calm Nature
+IVs: 0 Atk
+- Hyper Voice
+- Mystical Fire
+- Protect
+- Wish
+
+Cinderace (M) @ Life Orb
+Ability: Blaze
+EVs: 252 Atk / 4 SpD / 252 Spe
+Jolly Nature
+- Pyro Ball
+- Sucker Punch
+- U-turn
+- High Jump Kick
+
+Toxtricity (M) @ Throat Spray
+Ability: Punk Rock
+EVs: 4 Atk / 252 SpA / 252 Spe
+Rash Nature
+- Overdrive
+- Boomburst
+- Shift Gear
+- Fire Punch
+
+Seismitoad (M) @ Leftovers
+Ability: Water Absorb
+EVs: 252 HP / 252 Def / 4 SpD
+Relaxed Nature
+- Stealth Rock
+- Scald
+- Earthquake
+- Toxic
+
+Corviknight (M) @ Leftovers
+Ability: Pressure
+EVs: 248 HP / 80 SpD / 180 Spe
+Impish Nature
+- Defog
+- Brave Bird
+- Roost
+- U-turn
+"""
+
+	team_2 = """
+Togekiss @ Leftovers
+Ability: Serene Grace
+EVs: 248 HP / 8 SpA / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Air Slash
+- Nasty Plot
+- Substitute
+- Thunder Wave
+
+Galvantula @ Focus Sash
+Ability: Compound Eyes
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Sticky Web
+- Thunder Wave
+- Thunder
+- Energy Ball
+
+Cloyster @ King's Rock
+Ability: Skill Link
+EVs: 252 Atk / 4 SpD / 252 Spe
+Adamant Nature
+- Icicle Spear
+- Rock Blast
+- Ice Shard
+- Shell Smash
+
+Sandaconda @ Focus Sash
+Ability: Sand Spit
+EVs: 252 Atk / 4 SpD / 252 Spe
+Jolly Nature
+- Stealth Rock
+- Glare
+- Earthquake
+- Rock Tomb
+
+Excadrill @ Focus Sash
+Ability: Sand Rush
+EVs: 252 Atk / 4 SpD / 252 Spe
+Adamant Nature
+- Iron Head
+- Rock Slide
+- Earthquake
+- Rapid Spin
+
+Cinccino @ King's Rock
+Ability: Skill Link
+EVs: 252 Atk / 4 Def / 252 Spe
+Jolly Nature
+- Bullet Seed
+- Knock Off
+- Rock Blast
+- Tail Slap
+"""
+
+	custom_builder = RandomTeamFromPool([team_1])
+	custom_builder2 = RandomTeamFromPool([team_1])
 
 	env_player = BigBoyRLPlayer(
 		player_configuration=PlayerConfiguration("SimpleRLPlayer", None),
-		battle_format="gen8randombattle",
+		battle_format="gen8ou",
+		team=custom_builder,
 		server_configuration=LocalhostServerConfiguration,
 	)
 
 	opponent = RandomPlayer(
 		player_configuration=PlayerConfiguration("Random player", None),
-		battle_format="gen8randombattle",
+		battle_format="gen8ou",
+		team=custom_builder2,
 		server_configuration=LocalhostServerConfiguration,
 	)
 
@@ -406,13 +534,15 @@ if __name__ == "__main__":
 
 	second_opponent = MaxDamagePlayer(
 		player_configuration=PlayerConfiguration("Max damage player", None),
-		battle_format="gen8randombattle",
+		battle_format="gen8ou",
+		team=custom_builder2,
 		server_configuration=LocalhostServerConfiguration,
 	)
 
 	third_opponent = SimpleHeuristicsPlayer(
 		player_configuration=PlayerConfiguration("Simple heuristic player", None),
-		battle_format="gen8randombattle",
+		battle_format="gen8ou",
+		team=custom_builder2,
 		server_configuration=LocalhostServerConfiguration,
 	)
 
