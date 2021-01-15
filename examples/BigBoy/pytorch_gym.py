@@ -39,7 +39,8 @@ import matplotlib.pyplot as plt
 
 from poke_env.data import POKEDEX, MOVES
 from poke_env.utils import to_id_str
-from models import *
+from bigboy_model import *
+from teenyboy_model import *
 from players import *
 
 
@@ -245,11 +246,12 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 
 	assert len(q_values.shape) == 1
 	nb_actions = q_values.shape[0]
-	current_eps = eps_end + (eps_start - eps_end) * \
-		np.exp(-1 * current_step / eps_decay)
+	if test == False:
+		current_eps = eps_end + (eps_start - eps_end) * \
+			np.exp(-1 * current_step / eps_decay)
+		wandb.log({"current_eps": current_eps})
+
 	if action_mask != None:
-
-
 		#Mask out to only actions that are legal within the state space.
 		#action_mask_neg_infinity = [float("-inf") if action_mask[i] == 0 else 1 for i in range(0, len(action_mask))]
 		action_mask_neg_infinity = [-1000000 if action_mask[i] == 0 else 1 for i in range(0, len(action_mask))]
@@ -360,16 +362,16 @@ if __name__ == "__main__":
 	global config
 	hyperparameter_defaults = dict(
 		experiment_name = "BigBoy",
-		batch_size = 200,
-		batch_cap = 2,
-		optimize_every = 1000,
-		gamma = .5,
+		batch_size = 200, #Size of the batches from the memory
+		batch_cap = 2, #How many batches we take
+		memory_size = 10000, #How many S,A,S',R transitions we keep in memory
+		optimize_every = 1000, #How many turns before we update the network
+		gamma = .5, #Decay parameter
 		eps_start = .9,
 		eps_end = .05,
 		eps_decay = 200,
 		target_update = 5,
 		learning_rate = 0.00025,
-		memory_size = 10000,
 		nb_training_steps = 5000,
 		nb_evaluation_episodes = 100,
 		species_emb_dim = 3,

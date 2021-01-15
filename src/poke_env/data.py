@@ -66,6 +66,11 @@ for name, filename in [
 	with open(filepath) as fp:
 		STR_TO_ID[name] = json.load(fp)
 
+ID_TO_STR = {}
+for key in STR_TO_ID.keys():
+	ID_TO_STR[key] = {v : k for k,v in ID_TO_STR[key].items()}
+
+
 GEN7_ABILITIES: str = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "data", "typeChart.json"
 )
