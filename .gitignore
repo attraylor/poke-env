@@ -115,3 +115,6 @@ venv.bak/
 
 # PyCharm
 .idea/
+
+#wandb
+examples/BigBoy/wandb
