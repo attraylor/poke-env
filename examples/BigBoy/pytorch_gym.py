@@ -254,7 +254,7 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 	if action_mask != None:
 		#Mask out to only actions that are legal within the state space.
 		#action_mask_neg_infinity = [float("-inf") if action_mask[i] == 0 else 1 for i in range(0, len(action_mask))]
-		action_mask_neg_infinity = [-1000000 if action_mask[i] == 0 else 1 for i in range(0, len(action_mask))]
+		action_mask_neg_infinity = [-1000000 if action_mask[i] == 0 else 0 for i in range(0, len(action_mask))]
 		action_mask_neg_infinity = torch.autograd.Variable(torch.FloatTensor(action_mask_neg_infinity), requires_grad=False)
 		legal_actions = [i for i in range(0, len(action_mask)) if action_mask[i] == 1]#np.where(action_mask == 1)
 
@@ -264,7 +264,7 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 		if test == False and np.random.uniform() < current_eps:
 			action = np.random.choice(legal_actions)#np.random.randint(0, nb_actions)
 		else:
-			action = np.argmax(q_values * action_mask_neg_infinity)
+			action = np.argmax(q_values + action_mask_neg_infinity)
 	else:
 		if test == False and np.random.uniform() < current_eps:
 			action = np.random.randint(0, nb_actions)
@@ -369,7 +369,7 @@ if __name__ == "__main__":
 		gamma = .5, #Decay parameter
 		eps_start = .9,
 		eps_end = .05,
-		eps_decay = 200,
+		eps_decay = 1000,
 		target_update = 5,
 		learning_rate = 0.00025,
 		nb_training_steps = 5000,
