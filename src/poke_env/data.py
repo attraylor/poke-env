@@ -68,7 +68,7 @@ for name, filename in [
 
 ID_TO_STR = {}
 for key in STR_TO_ID.keys():
-	ID_TO_STR[key] = {v : k for k,v in ID_TO_STR[key].items()}
+	ID_TO_STR[key] = {v : k for k,v in STR_TO_ID[key].items()}
 
 
 GEN7_ABILITIES: str = os.path.join(

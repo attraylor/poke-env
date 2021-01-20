@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 
 from poke_env.data import STR_TO_ID
 from poke_env.utils import to_id_str
-from models import DQN, Embedding_DQN
+from bigboy_model import DQN, Embedding_DQN
 from poke_env.environment.status import Status
 
 import relevant_conditions
