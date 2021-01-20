@@ -160,6 +160,8 @@ def custom_bigboy_collate(batch):
 	return state_batch, action_batch, next_state_batch, reward_batch
 
 def fit(player, nb_steps):
+	global loss_hist
+
 	global config
 	global reward_hist
 	episode_durations = []
@@ -188,7 +190,7 @@ def fit(player, nb_steps):
 				wandb.log({"reward": episode_reward})
 				tq.set_description("Reward: {:.3f}".format(episode_reward.item()))
 				reward_hist.append(episode_reward.item())
-				# Store the transition in memory
+
 				memory.push(state, action, next_state, reward)
 
 				# Move to the next state
@@ -207,6 +209,7 @@ def fit(player, nb_steps):
 
 			if i_episode % config.target_update == 0:
 				target_net.load_state_dict(policy_net.state_dict())
+
 	print("avg battle length: {}".format(sum(episode_durations) / len(episode_durations)))
 
 def test(player, nb_episodes):
@@ -371,7 +374,7 @@ if __name__ == "__main__":
 		eps_end = .05,
 		eps_decay = 1000,
 		target_update = 5,
-		learning_rate = 0.00025,
+		learning_rate = 0.25,
 		nb_training_steps = 5000,
 		nb_evaluation_episodes = 100,
 		species_emb_dim = 3,
