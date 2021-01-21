@@ -367,14 +367,14 @@ if __name__ == "__main__":
 		experiment_name = "BigBoy",
 		batch_size = 200, #Size of the batches from the memory
 		batch_cap = 2, #How many batches we take
-		memory_size = 10000, #How many S,A,S',R transitions we keep in memory
+		memory_size = 100000, #How many S,A,S',R transitions we keep in memory
 		optimize_every = 1000, #How many turns before we update the network
 		gamma = .5, #Decay parameter
 		eps_start = .9,
 		eps_end = .05,
 		eps_decay = 1000,
 		target_update = 5,
-		learning_rate = 0.25,
+		learning_rate = 0.01,
 		nb_training_steps = 5000,
 		nb_evaluation_episodes = 100,
 		species_emb_dim = 3,
