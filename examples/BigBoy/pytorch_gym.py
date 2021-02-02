@@ -254,6 +254,11 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 			np.exp(-1 * current_step / eps_decay)
 		wandb.log({"current_eps": current_eps})
 
+	wandb.log({"q_values_move1": q_values[0]})
+	wandb.log({"q_values_move2": q_values[1]})
+
+	wandb.log({"q_values_switches": q_values[-6:-1]})
+
 	if action_mask != None:
 		#Mask out to only actions that are legal within the state space.
 		#action_mask_neg_infinity = [float("-inf") if action_mask[i] == 0 else 1 for i in range(0, len(action_mask))]
@@ -365,18 +370,18 @@ if __name__ == "__main__":
 	global config
 	hyperparameter_defaults = dict(
 		experiment_name = "BigBoy",
-		batch_size = 200, #Size of the batches from the memory
+		batch_size = 50, #Size of the batches from the memory
 		batch_cap = 2, #How many batches we take
 		memory_size = 100000, #How many S,A,S',R transitions we keep in memory
-		optimize_every = 1000, #How many turns before we update the network
+		optimize_every = 100, #How many turns before we update the network
 		gamma = .5, #Decay parameter
 		eps_start = .9,
 		eps_end = .05,
-		eps_decay = 1000,
+		eps_decay = 5000,
 		target_update = 5,
-		learning_rate = 0.01,
-		nb_training_steps = 5000,
-		nb_evaluation_episodes = 100,
+		learning_rate = 0.001,
+		nb_training_steps = 1000,
+		nb_evaluation_episodes = 10,
 		species_emb_dim = 3,
 		move_emb_dim = 3,
 		item_emb_dim = 1,
@@ -401,6 +406,48 @@ if __name__ == "__main__":
 	if not os.path.exists(writepath):
 		os.makedirs(writepath)
 
+	team_dummy = """
+Charmander
+Ability: Blaze
+Level: 5
+EVs: 1 Atk
+- Sleep Talk
+- Slash
+"""
+
+	team_starters = """
+Squirtle
+Ability: Torrent
+Level: 5
+EVs: 1 Atk
+IVs: 0 Atk
+- Haze
+- Water Gun
+- Sleep Talk
+- Celebrate
+
+Charmander
+Ability: Blaze
+Level: 5
+EVs: 1 Atk
+IVs: 0 Atk
+- Ember
+- Hone Claws
+- Sleep Talk
+- Celebrate
+
+Bulbasaur
+Ability: Overgrow
+Level: 5
+EVs: 1 Atk
+- Celebrate
+- Sleep Talk
+- Vine Whip
+- Safeguard
+
+
+
+"""
 
 	team_1 = """
 Goodra (M) @ Assault Vest
@@ -518,8 +565,8 @@ Jolly Nature
 - Tail Slap
 """
 
-	custom_builder = RandomTeamFromPool([team_1])
-	custom_builder2 = RandomTeamFromPool([team_1])
+	custom_builder = RandomTeamFromPool([team_dummy])
+	custom_builder2 = RandomTeamFromPool([team_dummy])
 
 	env_player = BigBoyRLPlayer(
 		player_configuration=PlayerConfiguration("SimpleRLPlayer", None),

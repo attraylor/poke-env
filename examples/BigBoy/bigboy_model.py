@@ -101,6 +101,10 @@ class BigBoy_DQN(nn.Module):
 		for i in range(1, config.num_layers):
 			self.complete_state_linear_layers.append(nn.Linear(config.complete_state_hidden_dim, config.complete_state_hidden_dim))
 		self.complete_state_linear_layers.append(nn.Linear(config.complete_state_hidden_dim, config.complete_state_output_dim))
+		'''new_weights = torch.FloatTensor(np.zeros(self.complete_state_linear_layers[-1].weight.shape))
+		new_bias = torch.FloatTensor(np.zeros(self.complete_state_linear_layers[-1].bias.shape))
+		self.complete_state_linear_layers[-1].bias.data.fill_(.1)
+		self.complete_state_linear_layers[-1].weight.data.fill_(.1)'''
 
 	def forward(self, state_dict):
 		"""State representation right now:
@@ -253,7 +257,10 @@ class BigBoy_DQN(nn.Module):
 		weather_embedding = self.weather_embedding(torch.LongTensor(state_dict["weather"]))
 
 		if len(weather_embedding.shape) == 3:
-			weather_embedding = weather_embedding.squeeze(2)
+			if weather_embedding.shape[2] == 1:
+				weather_embedding = weather_embedding.squeeze(2)
+			elif weather_embedding.shape[1] == 1:
+				weather_embedding = weather_embedding.squeeze(1)
 
 
 		vectors = [
@@ -276,7 +283,6 @@ class BigBoy_DQN(nn.Module):
 		for layer in self.complete_state_linear_layers[:-1]:
 			x = F.relu(layer(x))
 		state_embedding = self.complete_state_linear_layers[-1](x)
-
 		#TODO (longterm): move residuals
 		return state_embedding
 
