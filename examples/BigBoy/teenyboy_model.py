@@ -49,14 +49,18 @@ class TeenyBoy_DQN(nn.Module):
 
 		super(TeenyBoy_DQN, self).__init__()
 		#Embedding dimension sizes
-		self.input_dim = 10
+		self.input_dim = 4
 		self.hidden_dim = config.complete_state_hidden_dim
 		self.output_dim = 22
 		self.layers = []
-		self.layers.append(nn.Linear(self.input_dim,config.hidden_dim))
-		for i in range(1, config.num_layers):
-			self.layers.append(nn.Linear(config.hidden_dim,config.hidden_dim))
-		self.layers.append(nn.Linear(self.hidden_dim,config.output_dim))
+		self.layer1 = nn.Linear(self.input_dim, self.hidden_dim)
+		self.layer2 = nn.Linear(self.hidden_dim, self.output_dim)
+		self.layer2.weight.data.fill_(0)
+		self.layer2.bias.data.fill_(0)
+		#self.layers.append(nn.Linear(self.input_dim,config.hidden_dim))
+		#for i in range(1, config.num_layers):
+		#	self.layers.append(nn.Linear(config.hidden_dim,config.hidden_dim))
+		#self.layers.append(nn.Linear(self.hidden_dim,config.output_dim))
 
 
 	def forward(self, state_dict):
@@ -70,7 +74,11 @@ class TeenyBoy_DQN(nn.Module):
 						-bool: for 0/1 input
 			- opponent_team: List of pokemon object dictionaries
 			"""
-		move_powers = np.zeros(4)
+		batch_size = len(state_dict["weather"])
+		active_pokemon = state_dict["team"][0]
+		features = torch.FloatTensor(active_pokemon["move_powers"])
+		state_embedding = self.layer2(F.relu(self.layer1(features)))
+		'''move_powers = np.zeros(4)
 		moves_dmg_multiplier = np.zeros(4)
 		team_health = np.zeros(2)
 		active_pokemon = state_dict["team"][0]
@@ -88,7 +96,7 @@ class TeenyBoy_DQN(nn.Module):
 		x = complete_state_concatenation
 		for layer in self.complete_state_linear_layers[:-1]:
 			x = F.relu(layer(x))
-		state_embedding = self.complete_state_linear_layers[-1](x)
+		state_embedding = self.complete_state_linear_layers[-1](x)'''
 
 		#TODO (longterm): move residuals
 		return state_embedding
