@@ -12,6 +12,7 @@ import os
 import wandb
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 # from PIL import Image
+import json
 
 import torch
 import torch.nn as nn
@@ -39,14 +40,15 @@ import matplotlib.pyplot as plt
 
 from poke_env.data import POKEDEX, MOVES
 from poke_env.utils import to_id_str
-from bigboy_model import *
-from teenyboy_model import *
+from bigboy_model_1layer import *
+from working_teenyboy import *
 from players import *
 
 
 from config_utils import create_config
 
-
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 Transition = namedtuple('Transition',
 						('state', 'action', 'next_state', 'reward'))
@@ -169,7 +171,9 @@ def fit(player, nb_steps):
 	tq = trange(nb_steps, desc="Reward: 0")
 	episode_reward = 0
 	current_step_number = 0
+	stopped_adding = False
 	for i_episode in tq:
+		wandb.log({"Episode #": i_episode})
 		state = None
 		if state is None:  # start of a new episode
 			# Initialize the environment and state
@@ -190,9 +194,12 @@ def fit(player, nb_steps):
 				wandb.log({"reward": episode_reward})
 				tq.set_description("Reward: {:.3f}".format(episode_reward.item()))
 				reward_hist.append(episode_reward.item())
-
-				memory.push(state, action, next_state, reward)
-
+				#x = input("reward {} ".format(reward))
+				if i_episode < 10:
+					memory.push(state, action, next_state, reward)
+				elif stopped_adding == False:
+					print("loss stopped!!!!!!!!!!!!!!")
+					stopped_adding = True
 				# Move to the next state
 				state = next_state
 
@@ -208,9 +215,14 @@ def fit(player, nb_steps):
 			# Update the target network, copying all weights and biases in DQN
 
 			if i_episode % config.target_update == 0:
+				print("***updating target network*******************")
+				x = input("blah")
 				target_net.load_state_dict(policy_net.state_dict())
 
 	print("avg battle length: {}".format(sum(episode_durations) / len(episode_durations)))
+
+
+torch.set_printoptions(sci_mode=False)
 
 def test(player, nb_episodes):
 	tq = trange(nb_episodes, desc="Reward: 0")
@@ -256,6 +268,10 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 
 	wandb.log({"q_values_move1": q_values[0]})
 	wandb.log({"q_values_move2": q_values[1]})
+	wandb.log({"q_values_move3": q_values[2]})
+	wandb.log({"q_values_move4": q_values[3]})
+	wandb.log({"q_values_switch_1": q_values[-6]})
+	wandb.log({"q_values_switch_2": q_values[-5]})
 
 	wandb.log({"q_values_switches": q_values[-6:-1]})
 
@@ -285,8 +301,10 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 def optimize_model():
 	global loss_hist
 	global config
-	if len(memory) < config.batch_size:
-		return
+	'''if len(memory) < config.batch_size:
+		return'''
+
+
 	'''transitions = memory.sample(config.batch_size)
 	# Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
 	# detailed explanation). This converts batch-array of Transitions
@@ -294,8 +312,13 @@ def optimize_model():
 	batch = Transition(*zip(*transitions))'''
 	train_data = torch.utils.data.DataLoader(memory, batch_size = config.batch_size, collate_fn = custom_bigboy_collate)
 	batch_cap = config.batch_cap
-
+	batch_loss = 0
 	for idx, batch in enumerate(train_data):
+		'''print(json.dumps(batch[0], indent=1))
+		x = input("batch print s")
+		print(json.dumps(batch[2], indent=1))
+		x = input("batch print s'")'''
+
 		# Compute a mask of non-final states and concatenate the batch elements
 		# (a final state would've been the one after which simulation ended)
 		state_batch, action_batch, next_state, reward_batch = batch
@@ -330,16 +353,32 @@ def optimize_model():
 		# Compute the expected Q values
 		expected_state_action_values = (next_state_values * config.gamma) + reward_batch
 		# Compute Huber loss
+		print("state_action_values\n")
+		actions = action_batch.float().unsqueeze(1)
+		diff = state_action_values - expected_state_action_values.unsqueeze(1)
+		print(torch.cat([diff, actions, state_action_values, expected_state_action_values.unsqueeze(1)],dim=1))
+		'''print("next_state_values", next_state_values)
+		print("reward batch", reward_batch)
+		print("expected_state_action_values", expected_state_action_values)'''
 		loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
+		print(loss)
+		x = input("sav")
 		loss_hist.append(loss)
+		batch_loss += loss
 		# Optimize the model
 		optimizer.zero_grad()
 		loss.backward()
-		for param in policy_net.parameters():
+		for name, param in policy_net.named_parameters():
+			#print(name)
 			param.grad.data.clamp_(-1, 1)
+			#print(param.grad.data)
 		optimizer.step()
 		if idx > batch_cap:
-			return
+			break
+	wandb.log({"loss": batch_loss})
+	return
+
+
 
 
 def dqn_training(player, nb_steps):
@@ -371,14 +410,14 @@ if __name__ == "__main__":
 	hyperparameter_defaults = dict(
 		experiment_name = "BigBoy",
 		batch_size = 50, #Size of the batches from the memory
-		batch_cap = 2, #How many batches we take
-		memory_size = 100000, #How many S,A,S',R transitions we keep in memory
-		optimize_every = 100, #How many turns before we update the network
-		gamma = .5, #Decay parameter
+		batch_cap = 20, #How many batches we take
+		memory_size = 1000, #How many S,A,S',R transitions we keep in memory
+		optimize_every = 10, #How many turns before we update the network
+		gamma = .99, #Decay parameter
 		eps_start = .9,
 		eps_end = .05,
 		eps_decay = 5000,
-		target_update = 5,
+		target_update = 10,
 		learning_rate = 0.001,
 		nb_training_steps = 1000,
 		nb_evaluation_episodes = 10,
@@ -417,34 +456,33 @@ EVs: 1 Atk
 
 	team_starters = """
 Squirtle
-Ability: Torrent
+Ability: Rain Dish
 Level: 5
 EVs: 1 Atk
 IVs: 0 Atk
 - Haze
 - Water Gun
 - Sleep Talk
-- Celebrate
+- Helping Hand
 
 Charmander
-Ability: Blaze
+Ability: Solar Power
 Level: 5
 EVs: 1 Atk
 IVs: 0 Atk
 - Ember
 - Hone Claws
 - Sleep Talk
-- Celebrate
+- Helping Hand
 
 Bulbasaur
-Ability: Overgrow
+Ability: Chlorophyll
 Level: 5
 EVs: 1 Atk
-- Celebrate
+- Safeguard
 - Sleep Talk
 - Vine Whip
-- Safeguard
-
+- Helping Hand
 
 
 """
@@ -601,9 +639,9 @@ Jolly Nature
 	n_actions = len(env_player.action_space)
 
 
-	policy_net = BigBoy_DQN(config)
+	policy_net = TeenyBoy_DQN(config)
 
-	target_net = BigBoy_DQN(config)
+	target_net = TeenyBoy_DQN(config)
 	target_net.load_state_dict(policy_net.state_dict())
 	target_net.eval()
 

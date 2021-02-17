@@ -44,16 +44,13 @@ def homogenize_vectors(vectors):
 		tensors.append(tensor)
 	return tensors
 
-FWG_ONEHOTS = {0: [0, 0, 0], 7: [1, 0, 0], 10: [0, 1, 0], 18: [0, 0, 1]}
-
-
 class TeenyBoy_DQN(nn.Module):
 	def __init__(self, config):
 
 		super(TeenyBoy_DQN, self).__init__()
 		#Embedding dimension sizes
-		self.input_dim = 16
-		self.hidden_dim = config.complete_state_hidden_dim
+		self.input_dim = 6
+		self.hidden_dim = 3
 		self.output_dim = 22
 		self.layers = []
 		self.layer1 = nn.Linear(self.input_dim, self.hidden_dim)
@@ -64,6 +61,7 @@ class TeenyBoy_DQN(nn.Module):
 		#for i in range(1, config.num_layers):
 		#	self.layers.append(nn.Linear(config.hidden_dim,config.hidden_dim))
 		#self.layers.append(nn.Linear(self.hidden_dim,config.output_dim))
+
 
 	def forward(self, state_dict):
 		"""State representation right now:
@@ -78,30 +76,14 @@ class TeenyBoy_DQN(nn.Module):
 			"""
 		batch_size = len(state_dict["weather"])
 		active_pokemon = state_dict["team"][0]
-		backup_pokemon1 = state_dict["team"][1]
-		backup_pokemon2 = state_dict["team"][2]
-		move_features = torch.FloatTensor(active_pokemon["move_powers"])
-		opponent_pokemon = state_dict["opponent_team"][0]
+		features = torch.FloatTensor(active_pokemon["move_powers"])
+		opp_health = torch.FloatTensor(state_dict["opponent_team"][0]["hp_percentage"])
+		health = torch.FloatTensor(active_pokemon["hp_percentage"])
 		if batch_size == 1:
-			active_pokemon_type_ids = torch.FloatTensor(FWG_ONEHOTS[active_pokemon["type_ids"][0]])
-			backup_pokemon1_type_ids = torch.FloatTensor(FWG_ONEHOTS[backup_pokemon1["type_ids"][0]])
-			backup_pokemon2_type_ids = torch.FloatTensor(FWG_ONEHOTS[backup_pokemon2["type_ids"][0]])
-
-			#type_ids = torch.LongTensor(active_pokemon["move_type_ids"])
-			opponent_type_ids = torch.FloatTensor(FWG_ONEHOTS[opponent_pokemon["type_ids"][0]])
-			features = torch.cat([move_features, active_pokemon_type_ids, backup_pokemon1_type_ids, backup_pokemon2_type_ids, opponent_type_ids])
-
+			dimension = 0
 		else:
-			active_pokemon_type_ids = torch.FloatTensor([FWG_ONEHOTS[x[0]] for x in active_pokemon["type_ids"]])
-			backup_pokemon1_type_ids = torch.FloatTensor([FWG_ONEHOTS[x[0]] for x in backup_pokemon1["type_ids"]])
-			backup_pokemon2_type_ids = torch.FloatTensor([FWG_ONEHOTS[x[0]] for x in backup_pokemon2["type_ids"]])
-			opponent_type_ids = torch.FloatTensor([FWG_ONEHOTS[x[0]] for x in opponent_pokemon["type_ids"]])
-			feats = [move_features, active_pokemon_type_ids, backup_pokemon1_type_ids, backup_pokemon2_type_ids, opponent_type_ids]
-			'''for feature in feats:
-				print(feature.shape)'''
-
-			features = torch.cat([move_features, active_pokemon_type_ids, backup_pokemon1_type_ids, backup_pokemon2_type_ids, opponent_type_ids],dim=1)
-
+			dimension = 1
+		features = torch.cat([features, health, opp_health], dim=dimension)
 		state_embedding = self.layer2(F.relu(self.layer1(features)))
 		'''move_powers = np.zeros(4)
 		moves_dmg_multiplier = np.zeros(4)
@@ -115,9 +97,7 @@ class TeenyBoy_DQN(nn.Module):
 			move_powers[idx] = move_power
 			move_type = STR_TO_ID[MOVES[move_name]["type"]]
 			opponent_types = state_dict["opponent_team"][0]["type_ids"]
-
 			moves_dmg_multiplier
-
 		x = complete_state_concatenation
 		for layer in self.complete_state_linear_layers[:-1]:
 			x = F.relu(layer(x))
