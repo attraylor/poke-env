@@ -79,7 +79,7 @@ class TeenyBoy_DQN(nn.Module):
 		features = torch.FloatTensor(active_pokemon["move_powers"])
 		opp_health = torch.FloatTensor(state_dict["opponent_team"][0]["hp_percentage"])
 		health = torch.FloatTensor(active_pokemon["hp_percentage"])
-		if batch_size == 1:
+		if len(features.shape) == 1:
 			dimension = 0
 		else:
 			dimension = 1

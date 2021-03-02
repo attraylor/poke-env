@@ -52,7 +52,7 @@ class TeenyBoy_DQN(nn.Module):
 
 		super(TeenyBoy_DQN, self).__init__()
 		#Embedding dimension sizes
-		self.input_dim = 16
+		self.input_dim = 18
 		self.hidden_dim = config.complete_state_hidden_dim
 		self.output_dim = 22
 		self.layers = []
@@ -65,7 +65,7 @@ class TeenyBoy_DQN(nn.Module):
 		#	self.layers.append(nn.Linear(config.hidden_dim,config.hidden_dim))
 		#self.layers.append(nn.Linear(self.hidden_dim,config.output_dim))
 
-	def forward(self, state_dict):
+	def forward(self, state_dict, verbose=False):
 		"""State representation right now:
 			- team: List of pokemon object dictionaries, len = team_size
 				- Pokemon: Dict of {id_field : value},
@@ -82,14 +82,16 @@ class TeenyBoy_DQN(nn.Module):
 		backup_pokemon2 = state_dict["team"][2]
 		move_features = torch.FloatTensor(active_pokemon["move_powers"])
 		opponent_pokemon = state_dict["opponent_team"][0]
-		if batch_size == 1:
+		opp_health = torch.FloatTensor(state_dict["opponent_team"][0]["hp_percentage"])
+		health = torch.FloatTensor(active_pokemon["hp_percentage"])
+		if len(move_features.shape) == 1:
 			active_pokemon_type_ids = torch.FloatTensor(FWG_ONEHOTS[active_pokemon["type_ids"][0]])
 			backup_pokemon1_type_ids = torch.FloatTensor(FWG_ONEHOTS[backup_pokemon1["type_ids"][0]])
 			backup_pokemon2_type_ids = torch.FloatTensor(FWG_ONEHOTS[backup_pokemon2["type_ids"][0]])
 
 			#type_ids = torch.LongTensor(active_pokemon["move_type_ids"])
 			opponent_type_ids = torch.FloatTensor(FWG_ONEHOTS[opponent_pokemon["type_ids"][0]])
-			features = torch.cat([move_features, active_pokemon_type_ids, backup_pokemon1_type_ids, backup_pokemon2_type_ids, opponent_type_ids])
+			features = torch.cat([move_features, active_pokemon_type_ids, backup_pokemon1_type_ids, backup_pokemon2_type_ids, opponent_type_ids, health, opp_health])
 
 		else:
 			active_pokemon_type_ids = torch.FloatTensor([FWG_ONEHOTS[x[0]] for x in active_pokemon["type_ids"]])
@@ -100,8 +102,10 @@ class TeenyBoy_DQN(nn.Module):
 			'''for feature in feats:
 				print(feature.shape)'''
 
-			features = torch.cat([move_features, active_pokemon_type_ids, backup_pokemon1_type_ids, backup_pokemon2_type_ids, opponent_type_ids],dim=1)
-
+			features = torch.cat([move_features, active_pokemon_type_ids, backup_pokemon1_type_ids, backup_pokemon2_type_ids, opponent_type_ids,  health, opp_health],dim=1)
+		if verbose == True:
+			print("")
+			print(features)
 		state_embedding = self.layer2(F.relu(self.layer1(features)))
 		'''move_powers = np.zeros(4)
 		moves_dmg_multiplier = np.zeros(4)

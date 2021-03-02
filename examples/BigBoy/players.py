@@ -357,7 +357,7 @@ class BigBoyRLPlayer(Gen8EnvSinglePlayer):
 
 	def compute_reward(self, battle) -> float:
 		return self.reward_computing_helper(
-			battle, fainted_value=0, hp_value=0, victory_value=1
+			battle, fainted_value=5, hp_value=0, victory_value=10
 		)
 
 

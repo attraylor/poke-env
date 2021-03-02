@@ -41,7 +41,7 @@ import matplotlib.pyplot as plt
 from poke_env.data import POKEDEX, MOVES
 from poke_env.utils import to_id_str
 from bigboy_model_1layer import *
-from working_teenyboy import *
+from teenyboy_model import *
 from players import *
 
 
@@ -163,7 +163,7 @@ def custom_bigboy_collate(batch):
 
 def fit(player, nb_steps):
 	global loss_hist
-
+	push = 0
 	global config
 	global reward_hist
 	episode_durations = []
@@ -173,7 +173,6 @@ def fit(player, nb_steps):
 	current_step_number = 0
 	stopped_adding = False
 	for i_episode in tq:
-		wandb.log({"Episode #": i_episode})
 		state = None
 		if state is None:  # start of a new episode
 			# Initialize the environment and state
@@ -191,15 +190,17 @@ def fit(player, nb_steps):
 				#next_state = deepcopy(torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False))
 				reward = torch.FloatTensor([reward])
 				episode_reward += reward
-				wandb.log({"reward": episode_reward})
 				tq.set_description("Reward: {:.3f}".format(episode_reward.item()))
 				reward_hist.append(episode_reward.item())
 				#x = input("reward {} ".format(reward))
-				if i_episode < 10:
-					memory.push(state, action, next_state, reward)
-				elif stopped_adding == False:
-					print("loss stopped!!!!!!!!!!!!!!")
-					stopped_adding = True
+				#if i_episode < 10:
+				#if push < 2 and reward != 0:
+				#	print("PUSH REWARD", reward)
+				memory.push(state, action, next_state, reward)
+				#	push += 1
+				#elif stopped_adding == False:
+				#	print("loss stopped!!!!!!!!!!!!!!")
+				#	stopped_adding = True
 				# Move to the next state
 				state = next_state
 
@@ -215,8 +216,7 @@ def fit(player, nb_steps):
 			# Update the target network, copying all weights and biases in DQN
 
 			if i_episode % config.target_update == 0:
-				print("***updating target network*******************")
-				x = input("blah")
+				#print("***updating target network*******************")
 				target_net.load_state_dict(policy_net.state_dict())
 
 	print("avg battle length: {}".format(sum(episode_durations) / len(episode_durations)))
@@ -255,8 +255,9 @@ def test(player, nb_episodes):
 def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 		eps_end = 0.05, eps_decay = 200, nb_episodes = 2000, current_step = 0):
 	#Epsilon greedy action selection with action mask from environment
+	verbose = test
 	with torch.no_grad():
-		q_values = policy_net(state)
+		q_values = policy_net(state,verbose=verbose)
 	q_values = q_values.squeeze(0)
 
 	assert len(q_values.shape) == 1
@@ -264,16 +265,13 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 	if test == False:
 		current_eps = eps_end + (eps_start - eps_end) * \
 			np.exp(-1 * current_step / eps_decay)
-		wandb.log({"current_eps": current_eps})
 
 	wandb.log({"q_values_move1": q_values[0]})
 	wandb.log({"q_values_move2": q_values[1]})
 	wandb.log({"q_values_move3": q_values[2]})
-	wandb.log({"q_values_move4": q_values[3]})
+	#wandb.log({"q_values_move4": q_values[3]})
 	wandb.log({"q_values_switch_1": q_values[-6]})
 	wandb.log({"q_values_switch_2": q_values[-5]})
-
-	wandb.log({"q_values_switches": q_values[-6:-1]})
 
 	if action_mask != None:
 		#Mask out to only actions that are legal within the state space.
@@ -289,11 +287,17 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 			action = np.random.choice(legal_actions)#np.random.randint(0, nb_actions)
 		else:
 			action = np.argmax(q_values + action_mask_neg_infinity)
-	else:
+			if test == True:
+				print(q_values)
+				print(q_values + action_mask_neg_infinity)
+				print(action)
+				x = input("x")
+	else: #This shouldnt be called
 		if test == False and np.random.uniform() < current_eps:
 			action = np.random.randint(0, nb_actions)
 		else:
 			action = np.argmax(q_values)
+			print("\n\n\nhmmmm\n\n\n")
 	return torch.LongTensor([[action]])
 
 
@@ -353,16 +357,15 @@ def optimize_model():
 		# Compute the expected Q values
 		expected_state_action_values = (next_state_values * config.gamma) + reward_batch
 		# Compute Huber loss
-		print("state_action_values\n")
+		#print("state_action_values\n")
 		actions = action_batch.float().unsqueeze(1)
 		diff = state_action_values - expected_state_action_values.unsqueeze(1)
-		print(torch.cat([diff, actions, state_action_values, expected_state_action_values.unsqueeze(1)],dim=1))
+		#print(torch.cat([diff, actions, state_action_values, expected_state_action_values.unsqueeze(1)],dim=1))
 		'''print("next_state_values", next_state_values)
 		print("reward batch", reward_batch)
 		print("expected_state_action_values", expected_state_action_values)'''
 		loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
-		print(loss)
-		x = input("sav")
+		#x = input("sav")
 		loss_hist.append(loss)
 		batch_loss += loss
 		# Optimize the model
@@ -411,15 +414,15 @@ if __name__ == "__main__":
 		experiment_name = "BigBoy",
 		batch_size = 50, #Size of the batches from the memory
 		batch_cap = 20, #How many batches we take
-		memory_size = 1000, #How many S,A,S',R transitions we keep in memory
-		optimize_every = 10, #How many turns before we update the network
+		memory_size = 10000, #How many S,A,S',R transitions we keep in memory
+		optimize_every = 100, #How many turns before we update the network
 		gamma = .99, #Decay parameter
 		eps_start = .9,
 		eps_end = .05,
 		eps_decay = 5000,
 		target_update = 10,
 		learning_rate = 0.001,
-		nb_training_steps = 1000,
+		nb_training_steps = 10000,
 		nb_evaluation_episodes = 10,
 		species_emb_dim = 3,
 		move_emb_dim = 3,
@@ -450,9 +453,31 @@ Charmander
 Ability: Blaze
 Level: 5
 EVs: 1 Atk
-- Sleep Talk
-- Slash
+- Ember
 """
+
+	team_simple_starters = """
+Bulbasaur
+Ability: Chlorophyll
+Level: 5
+EVs: 1 Atk
+- Safeguard
+- Sleep Talk
+- Vine Whip
+- Helping Hand
+
+Squirtle
+Ability: Rain Dish
+Level: 5
+EVs: 1 Atk
+IVs: 0 Atk
+- Haze
+- Surf
+- Sleep Talk
+- Helping Hand
+
+"""
+
 
 	team_starters = """
 Squirtle
@@ -472,8 +497,8 @@ EVs: 1 Atk
 IVs: 0 Atk
 - Ember
 - Hone Claws
-- Sleep Talk
 - Helping Hand
+- Sleep Talk
 
 Bulbasaur
 Ability: Chlorophyll
@@ -483,7 +508,6 @@ EVs: 1 Atk
 - Sleep Talk
 - Vine Whip
 - Helping Hand
-
 
 """
 
@@ -603,8 +627,8 @@ Jolly Nature
 - Tail Slap
 """
 
-	custom_builder = RandomTeamFromPool([team_dummy])
-	custom_builder2 = RandomTeamFromPool([team_dummy])
+	custom_builder = RandomTeamFromPool([team_starters])
+	custom_builder2 = RandomTeamFromPool([team_starters])
 
 	env_player = BigBoyRLPlayer(
 		player_configuration=PlayerConfiguration("SimpleRLPlayer", None),
@@ -656,7 +680,7 @@ Jolly Nature
 
 	env_player.play_against(
 		env_algorithm=dqn_training,
-		opponent=opponent,
+		opponent=second_opponent,
 		env_algorithm_kwargs={"nb_steps": config.nb_training_steps},
 	)
 	model_path = os.path.join(writepath, "saved_model.torch")
