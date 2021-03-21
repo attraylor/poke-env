@@ -26,6 +26,9 @@ import argparse
 
 print("file", __file__)
 import sys
+sys.path += ["/gpfs/data/epavlick/atraylor/Pokemon/poke-env/src"]
+
+
 print(sys.path)
 
 from poke_env.player_configuration import PlayerConfiguration
