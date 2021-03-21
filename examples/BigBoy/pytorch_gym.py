@@ -172,7 +172,8 @@ def fit(player, nb_steps):
 	global reward_hist
 	episode_durations = []
 	#self.reset_states() #TODO: Impl
-	tq = trange(nb_steps, desc="Reward: 0")
+	#tq = trange(nb_steps, desc="Reward: 0")
+	tq = range(nb_steps)
 	episode_reward = 0
 	current_step_number = 0
 	stopped_adding = False
@@ -194,7 +195,7 @@ def fit(player, nb_steps):
 				#next_state = deepcopy(torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False))
 				reward = torch.FloatTensor([reward])
 				episode_reward += reward
-				tq.set_description("Reward: {:.3f}".format(episode_reward.item()))
+				#tq.set_description("Reward: {:.3f}".format(episode_reward.item()))
 				reward_hist.append(episode_reward.item())
 				#x = input("reward {} ".format(reward))
 				#if i_episode < 10:
@@ -229,7 +230,8 @@ def fit(player, nb_steps):
 torch.set_printoptions(sci_mode=False)
 
 def test(player, nb_episodes):
-	tq = trange(nb_episodes, desc="Reward: 0")
+	#tq = trange(nb_episodes, desc="Reward: 0")
+	tq = range(nb_episodes)
 	episode_reward = 0
 	for i_episode in tq:
 		state = None
@@ -246,7 +248,7 @@ def test(player, nb_episodes):
 				#next_state = deepcopy(torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False))
 				reward = torch.FloatTensor([reward])
 				episode_reward += reward
-				tq.set_description("Reward: {:.3f}".format(episode_reward.item()))
+				#tq.set_description("Reward: {:.3f}".format(episode_reward.item()))
 				# Store the transition in memory
 				memory.push(state, action, next_state, reward)
 				# Move to the next state
