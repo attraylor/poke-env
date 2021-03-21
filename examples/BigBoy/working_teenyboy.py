@@ -50,7 +50,7 @@ class TeenyBoy_DQN(nn.Module):
 		super(TeenyBoy_DQN, self).__init__()
 		#Embedding dimension sizes
 		self.input_dim = 6
-		self.hidden_dim = 3
+		self.hidden_dim = 16
 		self.output_dim = 22
 		self.layers = []
 		self.layer1 = nn.Linear(self.input_dim, self.hidden_dim)
