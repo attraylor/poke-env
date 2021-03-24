@@ -2,6 +2,7 @@ import gym
 import math
 import random
 import numpy as np
+import time
 import matplotlib
 import matplotlib.pyplot as plt
 from collections import namedtuple, defaultdict
@@ -37,6 +38,8 @@ from poke_env.player.random_player import RandomPlayer
 from poke_env.server_configuration import LocalhostServerConfiguration
 from poke_env.player.player import Player
 from poke_env.player.baselines import RandomPlayer, SimpleHeuristicsPlayer
+
+from io import StringIO 
 
 
 from sklearn.decomposition import PCA #Grab PCA functions
@@ -261,7 +264,7 @@ def test(player, nb_episodes):
 def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 		eps_end = 0.05, eps_decay = 200, nb_episodes = 2000, current_step = 0):
 	#Epsilon greedy action selection with action mask from environment
-	verbose = test
+	verbose = False
 	with torch.no_grad():
 		q_values = policy_net(state,verbose=verbose)
 	q_values = q_values.squeeze(0)
@@ -294,10 +297,11 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 		else:
 			action = np.argmax(q_values + action_mask_neg_infinity)
 			if test == True:
-				print(q_values)
-				print(q_values + action_mask_neg_infinity)
-				print(action)
-				x = input("x")
+				#print(q_values)
+				#print(q_values + action_mask_neg_infinity)
+				#print(action)
+				#x = input("x")
+				pass
 	else: #This shouldnt be called
 		if test == False and np.random.uniform() < current_eps:
 			action = np.random.randint(0, nb_actions)
@@ -428,7 +432,7 @@ if __name__ == "__main__":
 		eps_decay = 5000,
 		target_update = 10,
 		learning_rate = 0.001,
-		nb_training_steps = 50000,
+		nb_training_steps = 5,#0000,
 		nb_evaluation_episodes = 10,
 		species_emb_dim = 3,
 		move_emb_dim = 3,
@@ -450,9 +454,13 @@ if __name__ == "__main__":
 	wandb.init(config=hyperparameter_defaults)
 	config = wandb.config
 
-	writepath = os.path.join("results/",config.experiment_name)
+	file_time = str(time.time())
+	writepath = os.path.join("results/",file_time)
 	if not os.path.exists(writepath):
 		os.makedirs(writepath)
+	fconfig = open("results/"+file_time+"/config.txt","w+")
+	fconfig.write(str(config))
+
 
 
 
@@ -515,24 +523,25 @@ if __name__ == "__main__":
 	model_path = os.path.join(writepath, "saved_model.torch")
 	torch.save(policy_net.state_dict(), model_path)
 
+	old_stdout = sys.stdout
+	result = StringIO()
+	sys.stdout = result#open("results/"+file_time+"/log_games.txt","w+")
 
-	for chart_name, arr in [("loss", loss_hist), ("reward", reward_hist)]:
-		x = range(len(arr))
-		fig, ax = plt.subplots()
-		ax.plot(x, arr)
-		ax.set(xlabel = "batches", ylabel = chart_name, title = "{} hist over time".format(chart_name))
-		ax.grid()
-		fig.savefig(os.path.join(writepath, "{}.png".format(chart_name)))
-		plt.gcf().clear()
-
-
-	print("Results against random player:")
 	env_player.play_against(
 		env_algorithm=dqn_evaluation,
 		opponent=opponent,
 		env_algorithm_kwargs={"nb_episodes": config.nb_evaluation_episodes},
 	)
 
+	sys.stdout = old_stdout
+
+	result_string = result.getvalue()
+	print("Results against random player:")
+	wandb.log({"winrate": float(result_string.split(" ")[2])/config.nb_evaluation_episodes})
+	print(result_string)
+	
+
+	'''
 	print("Results against max player:")
 	env_player.play_against(
 		env_algorithm=dqn_evaluation,
@@ -548,5 +557,6 @@ if __name__ == "__main__":
 	)
 
 	print('Complete')
+	'''
 	#env.render()
 	env_player.close()
