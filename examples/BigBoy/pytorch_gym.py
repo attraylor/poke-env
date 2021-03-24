@@ -19,7 +19,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from teams import *
+from teams import teams
 
 import argparse
 
@@ -467,8 +467,8 @@ if __name__ == "__main__":
 
 
 
-	custom_builder = RandomTeamFromPool([config.our_team_name])
-	custom_builder2 = RandomTeamFromPool([config.opponent_team_name])
+	custom_builder = RandomTeamFromPool([teams[config.our_team_name])
+	custom_builder2 = RandomTeamFromPool([teams[config.opponent_team_name]])
 
 	env_player = BigBoyRLPlayer(
 		player_configuration=PlayerConfiguration("SimpleRLPlayer", None),
