@@ -536,30 +536,29 @@ if __name__ == "__main__":
 		env_algorithm_kwargs={"nb_episodes": config.nb_evaluation_episodes},
 	)
 
-	sys.stdout = old_stdout
-
-	result_string = result.getvalue()
-	print("Results against random player:")
-	wandb.log({"winrate": float(result_string.split(" ")[2])/config.nb_evaluation_episodes})
-	print(result_string)
-
-
-	'''
-	print("Results against max player:")
 	env_player.play_against(
 		env_algorithm=dqn_evaluation,
 		opponent=second_opponent,
 		env_algorithm_kwargs={"nb_episodes": config.nb_evaluation_episodes},
 	)
 
-	print("Results against simple heuristic player:")
 	env_player.play_against(
 		env_algorithm=dqn_evaluation,
 		opponent=third_opponent,
 		env_algorithm_kwargs={"nb_episodes": config.nb_evaluation_episodes},
 	)
 
+	sys.stdout = old_stdout
+
+	result_string = result.getvalue()
+	winrates = result_string.split("\n")
+	random_winrate = float(winrates[0].split(" ")[2])/config.nb_evaluation_episodes}
+	max_winrate = float(winrates[1].split(" ")[2])/config.nb_evaluation_episodes}
+	heuristic_winrate = float(winrates[2].split(" ")[2])/config.nb_evaluation_episodes}
+
+	wandb.log({"random_winrate": random_winrate, "max_winrate": max_winrate, "heuristic_winrate": heuristic_winrate})
+	print(random_winrate, max_winrate, heuristic_winrate)
 	print('Complete')
-	'''
+
 	#env.render()
 	env_player.close()
