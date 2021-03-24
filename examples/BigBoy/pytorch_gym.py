@@ -467,7 +467,7 @@ if __name__ == "__main__":
 
 
 
-	custom_builder = RandomTeamFromPool([teams[config.our_team_name])
+	custom_builder = RandomTeamFromPool([teams[config.our_team_name]])
 	custom_builder2 = RandomTeamFromPool([teams[config.opponent_team_name]])
 
 	env_player = BigBoyRLPlayer(
