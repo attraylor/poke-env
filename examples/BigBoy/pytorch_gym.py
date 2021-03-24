@@ -39,7 +39,7 @@ from poke_env.server_configuration import LocalhostServerConfiguration
 from poke_env.player.player import Player
 from poke_env.player.baselines import RandomPlayer, SimpleHeuristicsPlayer
 
-from io import StringIO 
+from io import StringIO
 
 
 from sklearn.decomposition import PCA #Grab PCA functions
@@ -198,6 +198,7 @@ def fit(player, nb_steps):
 				#next_state = deepcopy(torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False))
 				reward = torch.FloatTensor([reward])
 				episode_reward += reward
+				wandb.log({"cumulative_reward": episode_reward})
 				#tq.set_description("Reward: {:.3f}".format(episode_reward.item()))
 				reward_hist.append(episode_reward.item())
 				#x = input("reward {} ".format(reward))
@@ -422,6 +423,8 @@ if __name__ == "__main__":
 	global config
 	hyperparameter_defaults = dict(
 		experiment_name = "BigBoy",
+		opponent_team_name = "starters",
+		our_team_name = "starters",
 		batch_size = 50, #Size of the batches from the memory
 		batch_cap = 20, #How many batches we take
 		memory_size = 10000, #How many S,A,S',R transitions we keep in memory
@@ -464,8 +467,8 @@ if __name__ == "__main__":
 
 
 
-	custom_builder = RandomTeamFromPool([team_stronger_starters])
-	custom_builder2 = RandomTeamFromPool([team_starters])
+	custom_builder = RandomTeamFromPool([config.our_team_name])
+	custom_builder2 = RandomTeamFromPool([config.opponent_team_name])
 
 	env_player = BigBoyRLPlayer(
 		player_configuration=PlayerConfiguration("SimpleRLPlayer", None),
@@ -539,7 +542,7 @@ if __name__ == "__main__":
 	print("Results against random player:")
 	wandb.log({"winrate": float(result_string.split(" ")[2])/config.nb_evaluation_episodes})
 	print(result_string)
-	
+
 
 	'''
 	print("Results against max player:")

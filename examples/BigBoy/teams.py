@@ -1,4 +1,6 @@
-team_dummy = """
+teams = {}
+
+teams["dummy"] = """
 Charmander
 Ability: Blaze
 Level: 5
@@ -6,7 +8,7 @@ EVs: 1 Atk
 - Ember
 """
 
-team_simple_starters = """
+teams["simple_starters"] = """
 Bulbasaur
 Ability: Chlorophyll
 Level: 5
@@ -29,7 +31,7 @@ IVs: 0 Atk
 """
 
 
-team_starters = """
+teams["starters"] = """
 Squirtle
 Ability: Rain Dish
 Level: 5
@@ -61,7 +63,7 @@ EVs: 1 Atk
 
 """
 
-team_stronger_starters = """
+teams["stronger_starters"] = """
 Squirtle
 Ability: Rain Dish
 Level: 5
@@ -94,7 +96,7 @@ EVs: 1 Atk
 """
 
 
-baton_pass_1_us = """
+teams["baton_pass_1_us"] = """
 Blaziken @ Focus Sash
 Ability: Speed Boost
 IVs: 0 Atk
@@ -113,7 +115,7 @@ Adamant Nature
 - Sleep Talk
 """
 
-baton_pass_1_them = """
+teams["baton_pass_1_them"] = """
 Espeon
 Ability: Synchronize
 EVs: 252 SpA
@@ -123,7 +125,7 @@ IVs: 0 Atk
 """
 
 
-team_1 = """
+teams["ou_1"] = """
 Goodra (M) @ Assault Vest
 Ability: Sap Sipper
 EVs: 248 HP / 252 SpA / 8 Spe
@@ -181,7 +183,7 @@ Impish Nature
 - U-turn
 """
 
-team_2 = """
+teams["ou_2"] = """
 Togekiss @ Leftovers
 Ability: Serene Grace
 EVs: 248 HP / 8 SpA / 252 Spe
