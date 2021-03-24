@@ -552,9 +552,9 @@ if __name__ == "__main__":
 
 	result_string = result.getvalue()
 	winrates = result_string.split("\n")
-	random_winrate = float(winrates[0].split(" ")[2])/config.nb_evaluation_episodes}
-	max_winrate = float(winrates[1].split(" ")[2])/config.nb_evaluation_episodes}
-	heuristic_winrate = float(winrates[2].split(" ")[2])/config.nb_evaluation_episodes}
+	random_winrate = float(winrates[0].split(" ")[2])/config.nb_evaluation_episodes
+	max_winrate = float(winrates[1].split(" ")[2])/config.nb_evaluation_episodes
+	heuristic_winrate = float(winrates[2].split(" ")[2])/config.nb_evaluation_episodes
 
 	wandb.log({"random_winrate": random_winrate, "max_winrate": max_winrate, "heuristic_winrate": heuristic_winrate})
 	print(random_winrate, max_winrate, heuristic_winrate)
