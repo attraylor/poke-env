@@ -560,5 +560,7 @@ if __name__ == "__main__":
 	print(random_winrate, max_winrate, heuristic_winrate)
 	print('Complete')
 
+	wandb.finish()
+
 	#env.render()
 	env_player.close()
