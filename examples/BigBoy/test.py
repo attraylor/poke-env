@@ -426,7 +426,8 @@ if __name__ == "__main__":
 	parser.add_argument("--saved_model", type=str, default="filepath")
 	args = parser.parse_args()
 	with open(args.config) as rf:
-		hyperparameter_defaults = json.loads(rf)
+		line = rf.read()
+		hyperparameter_defaults = json.loads(line)
 	hyperparameter_defaults["saved_model"] = args.saved_model
 	wandb.init(config=hyperparameter_defaults)
 	config = wandb.config
