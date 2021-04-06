@@ -200,7 +200,6 @@ def fit(player, nb_steps):
 				#next_state = deepcopy(torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False))
 				reward = torch.FloatTensor([reward])
 				episode_reward += reward
-				wandb.log({"cumulative_reward": episode_reward})
 				#tq.set_description("Reward: {:.3f}".format(episode_reward.item()))
 				reward_hist.append(episode_reward.item())
 				#x = input("reward {} ".format(reward))
@@ -277,13 +276,6 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 	if test == False:
 		current_eps = eps_end + (eps_start - eps_end) * \
 			np.exp(-1 * current_step / eps_decay)
-
-	wandb.log({"q_values_move1": q_values[0]})
-	wandb.log({"q_values_move2": q_values[1]})
-	wandb.log({"q_values_move3": q_values[2]})
-	#wandb.log({"q_values_move4": q_values[3]})
-	wandb.log({"q_values_switch_1": q_values[-6]})
-	wandb.log({"q_values_switch_2": q_values[-5]})
 
 	if action_mask != None:
 		#Mask out to only actions that are legal within the state space.
@@ -391,7 +383,6 @@ def optimize_model():
 		optimizer.step()
 		if idx > batch_cap:
 			break
-	wandb.log({"loss": batch_loss})
 	return
 
 
@@ -496,7 +487,7 @@ if __name__ == "__main__":
 		env_algorithm_kwargs={"nb_episodes": config.nb_evaluation_episodes},
 	)
 
-	env_player.play_against(
+	"""env_player.play_against(
 		env_algorithm=dqn_evaluation,
 		opponent=second_opponent,
 		env_algorithm_kwargs={"nb_episodes": config.nb_evaluation_episodes},
@@ -506,18 +497,19 @@ if __name__ == "__main__":
 		env_algorithm=dqn_evaluation,
 		opponent=third_opponent,
 		env_algorithm_kwargs={"nb_episodes": config.nb_evaluation_episodes},
-	)
+	)"""
 
 	sys.stdout = old_stdout
 
 	result_string = result.getvalue()
 	winrates = result_string.split("\n")
 	random_winrate = float(winrates[0].split(" ")[2])/config.nb_evaluation_episodes
-	max_winrate = float(winrates[1].split(" ")[2])/config.nb_evaluation_episodes
+	'''max_winrate = float(winrates[1].split(" ")[2])/config.nb_evaluation_episodes
 	heuristic_winrate = float(winrates[2].split(" ")[2])/config.nb_evaluation_episodes
 
 	wandb.log({"random_winrate": random_winrate, "max_winrate": max_winrate, "heuristic_winrate": heuristic_winrate})
-	print(random_winrate, max_winrate, heuristic_winrate)
+	print(random_winrate, max_winrate, heuristic_winrate)'''
+	print(random_winrate)
 	print('Complete')
 
 	#env.render()
