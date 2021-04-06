@@ -21,6 +21,8 @@ import torch.optim as optim
 import torch.nn.functional as F
 from teams import teams
 
+from config_utils import create_config
+
 import argparse
 
 # import torchvision.transforms as T
@@ -425,9 +427,7 @@ if __name__ == "__main__":
 	parser.add_argument("--config", type=str, default="filepath")
 	parser.add_argument("--saved_model", type=str, default="filepath")
 	args = parser.parse_args()
-	with open(args.config) as rf:
-		line = rf.read()
-		hyperparameter_defaults = json.loads(line)
+	hyperparameter_defaults = create_config(args.config)
 	hyperparameter_defaults["saved_model"] = args.saved_model
 	wandb.init(config=hyperparameter_defaults)
 	config = wandb.config
