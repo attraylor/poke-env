@@ -1,0 +1,40 @@
+program: examples/BigBoy/pytorch_gym.py
+metric:
+  name: reward
+  goal: maximize
+method: bayes
+parameters:
+  our_pokemon_1_move_powers:
+    values: [True, False]
+  our_pokemon_1_move_type_ids:
+    values: [True, False]
+  our_pokemon_1_hp_percentage:
+    values: [True, False]
+  our_pokemon_2_6_hp_percentage:
+    values: [True, False]
+  our_pokemon_1_boosts:
+    values: [True, False]
+  our_pokemon_1_type_ids:
+    values: [True, False]
+  our_pokemon_2_6_type_ids:
+    values: [True, False]
+  opponent_pokemon_active_type_ids:
+    values: [True, False]
+  opponent_pokemon_active_boosts:
+    values: [True, False]
+  opponent_pokemon_active_hp_percentage:
+    values: [True, False]
+  our_pokemon_1_volatiles:
+    values: [True, False]
+  opponent_pokemon_active_volatiles:
+    values: [True, False]
+  our_side_conditions:
+    values: [True, False]
+  opponent_side_conditions:
+    values: [True, False]
+  our_pokemon_1_status_id:
+    values: [True, False]
+  our_pokemon_2_6_status_id:
+    values: [True, False]
+  opponent_pokemon_active_status_id:
+    values: [True, False]

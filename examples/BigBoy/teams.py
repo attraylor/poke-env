@@ -184,59 +184,66 @@ Impish Nature
 """
 
 teams["ou_2"] = """
-Togekiss @ Leftovers
-Ability: Serene Grace
-EVs: 248 HP / 8 SpA / 252 Spe
-Timid Nature
+Hydreigon @ Life Orb
+Ability: Levitate
+EVs: 4 Atk / 252 SpA / 252 Spe
+Hasty Nature
+- Draco Meteor
+- Superpower
+- Flash Cannon
+- Roost
+
+
+Zapdos @ Heavy-Duty Boots
+Ability: Static
+EVs: 248 HP / 244 Def / 16 Spe
+Bold Nature
 IVs: 0 Atk
-- Air Slash
-- Nasty Plot
-- Substitute
+- Volt Switch
+- Hurricane
+- Roost
+- Defog
+
+
+Clefable @ Leftovers
+Ability: Magic Guard
+EVs: 252 HP / 84 Def / 140 SpD / 32 Spe
+Calm Nature
+- Moonblast
+- Knock Off
+- Soft-Boiled
 - Thunder Wave
 
-Galvantula @ Focus Sash
-Ability: Compound Eyes
+
+Landorus-Therian (M) @ Leftovers
+Ability: Intimidate
+EVs: 252 HP / 4 Atk / 252 Def
+Impish Nature
+IVs: 30 Spe
+- Stealth Rock
+- Earthquake
+- Toxic
+- U-turn
+
+
+Heatran @ Leftovers
+Ability: Flash Fire
+EVs: 252 HP / 128 SpD / 128 Spe
+Calm Nature
+IVs: 0 Atk
+- Taunt
+- Magma Storm
+- Earth Power
+- Lava Plume
+
+
+Dragapult @ Choice Specs
+Ability: Infiltrator
 EVs: 252 SpA / 4 SpD / 252 Spe
 Timid Nature
-IVs: 0 Atk
-- Sticky Web
-- Thunder Wave
-- Thunder
-- Energy Ball
+- Draco Meteor
+- Shadow Ball
+- Hex
+- U-turn
 
-Cloyster @ King's Rock
-Ability: Skill Link
-EVs: 252 Atk / 4 SpD / 252 Spe
-Adamant Nature
-- Icicle Spear
-- Rock Blast
-- Ice Shard
-- Shell Smash
-
-Sandaconda @ Focus Sash
-Ability: Sand Spit
-EVs: 252 Atk / 4 SpD / 252 Spe
-Jolly Nature
-- Stealth Rock
-- Glare
-- Earthquake
-- Rock Tomb
-
-Excadrill @ Focus Sash
-Ability: Sand Rush
-EVs: 252 Atk / 4 SpD / 252 Spe
-Adamant Nature
-- Iron Head
-- Rock Slide
-- Earthquake
-- Rapid Spin
-
-Cinccino @ King's Rock
-Ability: Skill Link
-EVs: 252 Atk / 4 Def / 252 Spe
-Jolly Nature
-- Bullet Seed
-- Knock Off
-- Rock Blast
-- Tail Slap
 """

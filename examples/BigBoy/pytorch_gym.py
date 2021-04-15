@@ -47,8 +47,8 @@ import matplotlib.pyplot as plt
 
 from poke_env.data import POKEDEX, MOVES
 from poke_env.utils import to_id_str
-from bigboy_model_1layer import *
-from teenyboy_model import *
+from singleline_mediumboy_model import *
+from singleline_teenyboy_model import *
 from players import *
 
 
@@ -169,7 +169,7 @@ def custom_bigboy_collate(batch):
 	return state_batch, action_batch, next_state_batch, reward_batch
 
 def fit(player, nb_steps):
-	global loss_hist
+	global field_to_idx
 	push = 0
 	global config
 	global reward_hist
@@ -189,7 +189,7 @@ def fit(player, nb_steps):
 				state = torch.autograd.Variable(torch.Tensor(state), requires_grad=False)
 			for t in count():
 				# Select and perform an action
-
+				field_to_idx = player.field_to_idx
 				action = select_action(state, env_player.gen8_legal_action_mask(env_player._current_battle),
 						test=False, eps_start = config.eps_start, eps_end = config.eps_end,
 						eps_decay = config.eps_decay,
@@ -205,12 +205,8 @@ def fit(player, nb_steps):
 				#if i_episode < 10:
 				#if push < 2 and reward != 0:
 				#	print("PUSH REWARD", reward)
+				next_state = torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False)
 				memory.push(state, action, next_state, reward)
-				#	push += 1
-				#elif stopped_adding == False:
-				#	print("loss stopped!!!!!!!!!!!!!!")
-				#	stopped_adding = True
-				# Move to the next state
 				state = next_state
 
 				# Perform one step of the optimization (on the policy network)
@@ -249,12 +245,13 @@ def test(player, nb_episodes):
 				action = select_action(state, env_player.gen8_legal_action_mask(env_player._current_battle),
 						test=True)
 				next_state, reward, done, info = env_player.step(action.item())
+				next_state = torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False)
 				#next_state = deepcopy(torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False))
 				reward = torch.FloatTensor([reward])
 				episode_reward += reward
 				#tq.set_description("Reward: {:.3f}".format(episode_reward.item()))
 				# Store the transition in memory
-				memory.push(state, action, next_state, reward)
+				#memory.push(state, action, next_state, reward)
 				# Move to the next state
 				state = next_state
 
@@ -264,10 +261,11 @@ def test(player, nb_episodes):
 
 def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 		eps_end = 0.05, eps_decay = 200, nb_episodes = 2000, current_step = 0):
+	global field_to_idx
 	#Epsilon greedy action selection with action mask from environment
 	verbose = False
 	with torch.no_grad():
-		q_values = policy_net(state,verbose=verbose)
+		q_values = policy_net(state,field_to_idx, verbose=verbose)
 	q_values = q_values.squeeze(0)
 
 	assert len(q_values.shape) == 1
@@ -309,13 +307,14 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 		else:
 			action = np.argmax(q_values)
 			print("\n\n\nhmmmm\n\n\n")
-	return torch.LongTensor([[action]])
+	return torch.LongTensor([action])
 
 
 
 def optimize_model():
 	global loss_hist
 	global config
+	global field_to_idx
 	'''if len(memory) < config.batch_size:
 		return'''
 
@@ -325,7 +324,7 @@ def optimize_model():
 	# detailed explanation). This converts batch-array of Transitions
 	# to Transition of batch-arrays.
 	batch = Transition(*zip(*transitions))'''
-	train_data = torch.utils.data.DataLoader(memory, batch_size = config.batch_size, collate_fn = custom_bigboy_collate)
+	train_data = torch.utils.data.DataLoader(memory, batch_size = config.batch_size)#collate_fn = custom_bigboy_collate)
 	batch_cap = config.batch_cap
 	batch_loss = 0
 	for idx, batch in enumerate(train_data):
@@ -337,6 +336,8 @@ def optimize_model():
 		# Compute a mask of non-final states and concatenate the batch elements
 		# (a final state would've been the one after which simulation ended)
 		state_batch, action_batch, next_state, reward_batch = batch
+
+
 		#non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,next_state)), dtype=torch.bool)
 		#non_final_next_states = torch.stack([s for s in next_state
 		#											if s is not None])
@@ -347,7 +348,7 @@ def optimize_model():
 		action_batch = torch.cat(batch.action)
 		reward_batch = torch.cat(batch.reward)
 		'''
-		q_values = policy_net(state_batch)
+		q_values = policy_net(state_batch, field_to_idx)
 
 		# Compute Q(s_t, a) - the model computes Q(s_t), then we select the
 		# columns of actions taken. These are the actions which would've been taken
@@ -355,7 +356,7 @@ def optimize_model():
 		if config.batch_size == 1:
 			q_values = q_values.unsqueeze(1)
 		else:
-			state_action_values = q_values.gather(1, action_batch.unsqueeze(1))
+			state_action_values = q_values.gather(1, action_batch)
 			#state_action_values torch.FloatTensor([q_values[i][action_batch[i]] for i in range(q_values.shape[0])])
 		# Compute V(s_{t+1}) for all next states.
 		# Expected values of actions for non_final_next_states are computed based
@@ -363,19 +364,21 @@ def optimize_model():
 		# This is merged based on the mask, such that we'll have either the expected
 		# state value or 0 in case the state was final.
 		next_state_values = torch.zeros(config.batch_size)
-		next_state_values = target_net(next_state).max(1)[0].detach()
+		#next_state = torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False)
+		next_state_values = target_net(next_state, field_to_idx)
+		next_state_values = next_state_values.max(1)[0].detach().unsqueeze(1)
 		#next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
 		# Compute the expected Q values
 		expected_state_action_values = (next_state_values * config.gamma) + reward_batch
 		# Compute Huber loss
 		#print("state_action_values\n")
-		actions = action_batch.float().unsqueeze(1)
-		diff = state_action_values - expected_state_action_values.unsqueeze(1)
+		actions = action_batch.float()
+		#diff = state_action_values - expected_state_action_values.unsqueeze(1)
 		#print(torch.cat([diff, actions, state_action_values, expected_state_action_values.unsqueeze(1)],dim=1))
 		'''print("next_state_values", next_state_values)
 		print("reward batch", reward_batch)
 		print("expected_state_action_values", expected_state_action_values)'''
-		loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
+		loss = F.smooth_l1_loss(state_action_values, expected_state_action_values)
 		#x = input("sav")
 		loss_hist.append(loss)
 		batch_loss += loss
@@ -383,8 +386,8 @@ def optimize_model():
 		optimizer.zero_grad()
 		loss.backward()
 		for name, param in policy_net.named_parameters():
-			#print(name)
-			param.grad.data.clamp_(-1, 1)
+			if param.grad is not None:
+				param.grad.data.clamp_(-1, 1)
 			#print(param.grad.data)
 		optimizer.step()
 		if idx > batch_cap:
@@ -425,18 +428,19 @@ if __name__ == "__main__":
 		experiment_name = "BigBoy",
 		opponent_team_name = "starters",
 		our_team_name = "starters",
+		opponent_ai = "max",
 		batch_size = 50, #Size of the batches from the memory
-		batch_cap = 20, #How many batches we take
-		memory_size = 10000, #How many S,A,S',R transitions we keep in memory
-		optimize_every = 100, #How many turns before we update the network
-		gamma = .99, #Decay parameter
+		batch_cap = 2, #How many batches we take
+		memory_size = 200, #How many S,A,S',R transitions we keep in memory
+		optimize_every = 500, #How many turns before we update the network
+		gamma = .5, #Decay parameter
 		eps_start = .9,
 		eps_end = .05,
-		eps_decay = 5000,
-		target_update = 10,
+		eps_decay = 1000,
+		target_update = 5,
 		learning_rate = 0.001,
-		nb_training_steps = 5,#0000,
-		nb_evaluation_episodes = 10,
+		nb_training_steps = 20000,
+		nb_evaluation_episodes = 100,
 		species_emb_dim = 3,
 		move_emb_dim = 3,
 		item_emb_dim = 1,
@@ -448,7 +452,7 @@ if __name__ == "__main__":
 		team_embedding_hidden_dim = 4,
 		move_encoder_hidden_dim = 3,
 		opponent_hidden_dim = 3,
-		complete_state_hidden_dim = 5,
+		complete_state_hidden_dim = 64,
 		complete_state_output_dim = 22,
 		seed = 420,
 		num_layers = 1
@@ -462,15 +466,13 @@ if __name__ == "__main__":
 	if not os.path.exists(writepath):
 		os.makedirs(writepath)
 	fconfig = open("results/"+file_time+"/config.txt","w+")
-	fconfig.write(str(config))
-
-
-
+	for key in config.keys():
+		fconfig.write("{}\t{}\n".format(key, config[key]))
 
 	custom_builder = RandomTeamFromPool([teams[config.our_team_name]])
 	custom_builder2 = RandomTeamFromPool([teams[config.opponent_team_name]])
 
-	env_player = BigBoyRLPlayer(
+	env_player = SingleLineRLPlayer(
 		player_configuration=PlayerConfiguration("SimpleRLPlayer", None),
 		battle_format="gen8ou",
 		team=custom_builder,
@@ -503,9 +505,9 @@ if __name__ == "__main__":
 	n_actions = len(env_player.action_space)
 
 
-	policy_net = TeenyBoy_DQN(config)
+	policy_net = SinglelineMediumBoy_DQN(config)
 
-	target_net = TeenyBoy_DQN(config)
+	target_net = SinglelineMediumBoy_DQN(config)
 	target_net.load_state_dict(policy_net.state_dict())
 	target_net.eval()
 
@@ -517,10 +519,15 @@ if __name__ == "__main__":
 
 	loss_hist = []
 	reward_hist = []
-
+	if config.opponent_ai == "random":
+		training_opp = opponent
+	elif config.opponent_ai == "max":
+		training_opp = second_opponent
+	elif config.opponent_ai == "shp":
+		training_opp = third_opponent
 	env_player.play_against(
 		env_algorithm=dqn_training,
-		opponent=second_opponent,
+		opponent=training_opp,
 		env_algorithm_kwargs={"nb_steps": config.nb_training_steps},
 	)
 	model_path = os.path.join(writepath, "saved_model.torch")
