@@ -322,7 +322,6 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 
 
 def optimize_model_double():
-	global loss_hist
 	global config
 	global field_to_idx
 
@@ -394,11 +393,9 @@ def optimize_model_double():
 		optimizer_theta.zero_grad()
 		optimizer_prime.zero_grad()
 		if idx % 2 == 0:
-			loss_hist_theta.append(loss_theta)
 			batch_loss_theta += loss_theta
 			loss_theta.backward()
 		else:
-			loss_hist_prime.append(loss_prime)
 			batch_loss_prime += loss_prime
 			loss_prime.backward()
 		for name, param in policy_net_theta.named_parameters():
@@ -419,7 +416,6 @@ def optimize_model_double():
 
 
 def optimize_model():
-	global loss_hist
 	global config
 	global field_to_idx
 	'''if len(memory) < config.batch_size:
@@ -487,7 +483,6 @@ def optimize_model():
 		print("expected_state_action_values", expected_state_action_values)'''
 		loss = F.smooth_l1_loss(state_action_values, expected_state_action_values)
 		#x = input("sav")
-		loss_hist.append(loss)
 		batch_loss += loss
 		# Optimize the model
 		optimizer.zero_grad()
@@ -646,7 +641,6 @@ if __name__ == "__main__":
 
 	steps_done = 0
 
-	loss_hist = []
 	reward_hist = []
 	if config.opponent_ai == "random":
 		training_opp = opponent
