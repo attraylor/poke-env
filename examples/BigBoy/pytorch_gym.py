@@ -23,12 +23,14 @@ from teams import teams
 
 import argparse
 
+import cpprb
+
+
 # import torchvision.transforms as T
 
 print("file", __file__)
 import sys
 sys.path += ["/gpfs/data/epavlick/atraylor/Pokemon/poke-env/src"]
-
 
 print(sys.path)
 
@@ -206,7 +208,7 @@ def fit(player, nb_steps):
 				#if push < 2 and reward != 0:
 				#	print("PUSH REWARD", reward)
 				next_state = torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False)
-				memory.push(state, action, next_state, reward)
+				rb.add(obs=state, act=action, next_obs=next_state, rew=reward, done=done)
 				state = next_state
 
 				# Perform one step of the optimization (on the policy network)
@@ -218,6 +220,7 @@ def fit(player, nb_steps):
 						optimize_model()
 				if done:
 					episode_durations.append(t + 1)
+					rb.on_episode_end()
 					#print('Episode {}: reward: {:.3f}'.format(i_episode, reward))
 					#plot_durations()
 					break
@@ -325,14 +328,18 @@ def optimize_model_double():
 	global config
 	global field_to_idx
 
-	train_data = torch.utils.data.DataLoader(memory, batch_size = config.batch_size)#collate_fn = custom_bigboy_collate)
+	#train_data = torch.utils.data.DataLoader(memory, batch_size = config.batch_size)#collate_fn = custom_bigboy_collate)
 	batch_cap = config.batch_cap
 	batch_loss_theta = 0
 	batch_loss_prime = 0
-	for idx, batch in enumerate(train_data):
+	for idx in range(0, batch_cap):
+		batch = rb.sample(config.batch_size)#, batch in enumerate(train_data):
 		# Compute a mask of non-final states and concatenate the batch elements
 		# (a final state would've been the one after which simulation ended)
-		state_batch, action_batch, next_state, reward_batch = batch
+		state_batch = batch["obs"]
+		action_batch = batch["act"]
+		next_state = batch["next_obs"]
+		reward_batch = batch["rew"]
 
 
 		q_values_theta = policy_net_theta(state_batch, field_to_idx)
@@ -430,15 +437,14 @@ def optimize_model():
 	train_data = torch.utils.data.DataLoader(memory, batch_size = config.batch_size)#collate_fn = custom_bigboy_collate)
 	batch_cap = config.batch_cap
 	batch_loss = 0
-	for idx, batch in enumerate(train_data):
-		'''print(json.dumps(batch[0], indent=1))
-		x = input("batch print s")
-		print(json.dumps(batch[2], indent=1))
-		x = input("batch print s'")'''
-
+	for idx in range(0, batch_cap):
+		batch = rb.sample(config.batch_size)#, batch in enumerate(train_data):
 		# Compute a mask of non-final states and concatenate the batch elements
 		# (a final state would've been the one after which simulation ended)
-		state_batch, action_batch, next_state, reward_batch = batch
+		state_batch = batch["obs"]
+		action_batch = batch["act"]
+		next_state = batch["next_obs"]
+		reward_batch = batch["rew"]
 
 
 		#non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,next_state)), dtype=torch.bool)
@@ -526,6 +532,7 @@ class RandomTeamFromPool(Teambuilder):
 
 if __name__ == "__main__":
 	global config
+	global transitions_path
 	hyperparameter_defaults = dict(
 		experiment_name = "BigBoy",
 		dqn_style = "double",
@@ -558,7 +565,8 @@ if __name__ == "__main__":
 		complete_state_hidden_dim = 64,
 		complete_state_output_dim = 22,
 		seed = 420,
-		num_layers = 1
+		num_layers = 1,
+		save_transitions = False
 	)
 
 	wandb.init(config=hyperparameter_defaults)
@@ -570,8 +578,11 @@ if __name__ == "__main__":
 		run_name = str(time.time())
 
 	writepath = os.path.join("results/",run_name)
+	transitions_path = os.path.join(writepath, "transitions")
 	if not os.path.exists(writepath):
 		os.makedirs(writepath)
+	if not os.path.exists(transitions_path):
+		os.makedirs(transitions_path)
 	fconfig = open("results/"+run_name+"/config.txt","w+")
 	for key in config.keys():
 		fconfig.write("{}\t{}\n".format(key, config[key]))
@@ -637,7 +648,14 @@ if __name__ == "__main__":
 		optimizer_prime = optim.Adam(policy_net_prime.parameters(), lr=config.learning_rate)
 	else:
 		optimizer = optim.Adam(policy_net.parameters(), lr=config.learning_rate)
-	memory = ReplayMemory(config.memory_size)
+
+	env_dict = {"obs": {"shape": (270, 1)},
+				"act": {},
+				"rew": {},
+				"next_obs": {"shape": (270, 1)},
+				#"done": {}
+				}
+	rb = cpprb.ReplayBuffer(config.memory_size, env_dict)#ReplayMemory(config.memory_size)
 
 	steps_done = 0
 
