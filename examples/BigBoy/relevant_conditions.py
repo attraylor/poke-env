@@ -6,7 +6,7 @@ from poke_env.environment.side_condition import SideCondition
 
 
 statuses = [None, Status.BRN, Status.FRZ, Status.PAR, Status.PSN, Status.SLP, Status.TOX]
-weathers = [None, Weather.DESOLATELAND,Weather.DELTASTREAM,Weather.HAIL,Weather.PRIMORDIALSEA,Weather.RAINDANCE,Weather.SANDSTORM,Weather.SUNNYDAY]
+weathers = [{}, Weather.DESOLATELAND,Weather.DELTASTREAM,Weather.HAIL,Weather.PRIMORDIALSEA,Weather.RAINDANCE,Weather.SANDSTORM,Weather.SUNNYDAY]
 
 volatiles = [
 	Effect.ATTRACT,

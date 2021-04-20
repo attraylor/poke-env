@@ -212,7 +212,10 @@ def fit(player, nb_steps):
 				# Perform one step of the optimization (on the policy network)
 				current_step_number += 1
 				if current_step_number % config.optimize_every == 0:
-					optimize_model()
+					if config.dqn_style == "double":
+						optimize_model_double()
+					else:
+						optimize_model()
 				if done:
 					episode_durations.append(t + 1)
 					#print('Episode {}: reward: {:.3f}'.format(i_episode, reward))
@@ -222,7 +225,11 @@ def fit(player, nb_steps):
 
 			if i_episode % config.target_update == 0:
 				#print("***updating target network*******************")
-				target_net.load_state_dict(policy_net.state_dict())
+				if config.dqn_style == "double":
+					target_net_theta.load_state_dict(policy_net_theta.state_dict())
+					target_net_prime.load_state_dict(policy_net_prime.state_dict())
+				else: #single
+					target_net.load_state_dict(policy_net.state_dict())
 
 	print("avg battle length: {}".format(sum(episode_durations) / len(episode_durations)))
 
@@ -265,7 +272,10 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 	#Epsilon greedy action selection with action mask from environment
 	verbose = False
 	with torch.no_grad():
-		q_values = policy_net(state,field_to_idx, verbose=verbose)
+		if config.dqn_style == "double":
+			q_values = policy_net_prime(state,field_to_idx, verbose=verbose)
+		else:
+			q_values = policy_net(state,field_to_idx, verbose=verbose)
 	q_values = q_values.squeeze(0)
 
 	assert len(q_values.shape) == 1
@@ -308,6 +318,99 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 			action = np.argmax(q_values)
 			print("\n\n\nhmmmm\n\n\n")
 	return torch.LongTensor([action])
+
+
+
+def optimize_model_double():
+	global loss_hist
+	global config
+	global field_to_idx
+
+	train_data = torch.utils.data.DataLoader(memory, batch_size = config.batch_size)#collate_fn = custom_bigboy_collate)
+	batch_cap = config.batch_cap
+	batch_loss = 0
+	for idx, batch in enumerate(train_data):
+		# Compute a mask of non-final states and concatenate the batch elements
+		# (a final state would've been the one after which simulation ended)
+		state_batch, action_batch, next_state, reward_batch = batch
+
+
+		q_values_theta = policy_net_theta(state_batch, field_to_idx)
+		q_values_prime = policy_net_prime(state_batch, field_to_idx)
+
+		q_values_ns_prime = policy_net_prime(next_state, field_to_idx)
+		q_values_ns_theta = policy_net_theta(next_state, field_to_idx)
+		max_action_indices_prime = q_values_ns_prime.argmax(dim=1) #TODO: doublecheck
+		max_action_indices_theta = q_values_ns_theta.argmax(dim=1) #TODO: doublecheck
+
+
+		# Compute Q(s_t, a) - the model computes Q(s_t), then we select the
+		# columns of actions taken. These are the actions which would've been taken
+		# for each batch state according to policy_net
+		if config.batch_size == 1:
+			q_values_theta = q_values_theta.unsqueeze(1)
+			q_values_prime = q_values_prime.unsqueeze(1)
+		else:
+			state_action_values_theta = q_values_theta.gather(1, action_batch)
+			state_action_values_prime = q_values_prime.gather(1, action_batch)
+			#state_action_values torch.FloatTensor([q_values[i][action_batch[i]] for i in range(q_values.shape[0])])
+		# Compute V(s_{t+1}) for all next states.
+		# Expected values of actions for non_final_next_states are computed based
+		# on the "older" target_net; selecting their best reward with max(1)[0].
+		# This is merged based on the mask, such that we'll have either the expected
+		# state value or 0 in case the state was final.
+		next_state_values_theta = target_net_theta(next_state, field_to_idx)
+		next_state_values_theta = next_state_values_theta.gather(1, max_action_indices_prime.unsqueeze(1))
+
+		next_state_values_prime = target_net_prime(next_state, field_to_idx)
+		next_state_values_prime = next_state_values_prime.gather(1, max_action_indices_theta.unsqueeze(1))
+		#next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
+		# Compute the expected Q values
+		expected_state_action_values_theta = (next_state_values_theta * config.gamma) + reward_batch
+		expected_state_action_values_prime = (next_state_values_prime * config.gamma) + reward_batch
+		# Compute Huber loss
+		#print("state_action_values\n")
+		actions = action_batch.float()
+		#diff = state_action_values - expected_state_action_values.unsqueeze(1)
+		#print(torch.cat([diff, actions, state_action_values, expected_state_action_values.unsqueeze(1)],dim=1))
+		'''print("q_values_theta", q_values_theta.shape)
+		print("q_values_prime", q_values_prime.shape)
+		print("max_action_indices_prime", max_action_indices_prime.shape)
+		print("max_action_indices_theta", max_action_indices_theta.shape)
+		print("state_action_values_theta", state_action_values_theta.shape)
+		print("state_action_values_prime", state_action_values_prime.shape)
+		print("action_batch", action_batch.shape)
+		print("next_state_values_theta", next_state_values_theta.shape)
+		print("next_state_values_prime", next_state_values_prime.shape)
+		print("expected_state_action_values_theta", expected_state_action_values_theta.shape)
+		print("expected_state_action_values_prime", expected_state_action_values_prime.shape)'''
+
+		loss_theta = F.smooth_l1_loss(state_action_values_theta, expected_state_action_values_theta)
+		loss_prime = F.smooth_l1_loss(state_action_values_prime, expected_state_action_values_prime)
+		#x = input("sav")
+		loss_hist.append(loss_theta)
+		batch_loss += loss_theta
+		# Optimize the model
+		optimizer_theta.zero_grad()
+		optimizer_prime.zero_grad()
+		if idx % 2 == 0:
+			loss_theta.backward()
+		else:
+			loss_prime.backward()
+		for name, param in policy_net_theta.named_parameters():
+			if param.grad is not None:
+				param.grad.data.clamp_(-1, 1)
+
+		for name, param in policy_net_prime.named_parameters():
+			if param.grad is not None:
+				param.grad.data.clamp_(-1, 1)
+		optimizer_theta.step()
+		optimizer_prime.step()
+		if idx > batch_cap:
+			break
+	wandb.log({"loss": batch_loss})
+	return
+
 
 
 
@@ -426,6 +529,7 @@ if __name__ == "__main__":
 	global config
 	hyperparameter_defaults = dict(
 		experiment_name = "BigBoy",
+		dqn_style = "double",
 		opponent_team_name = "starters",
 		our_team_name = "starters",
 		opponent_ai = "max",
@@ -461,11 +565,15 @@ if __name__ == "__main__":
 	wandb.init(config=hyperparameter_defaults)
 	config = wandb.config
 
-	file_time = str(time.time())
-	writepath = os.path.join("results/",file_time)
+	if wandb.run.name is not None:
+		run_name = wandb.run.name
+	else:
+		run_name = str(time.time())
+
+	writepath = os.path.join("results/",run_name)
 	if not os.path.exists(writepath):
 		os.makedirs(writepath)
-	fconfig = open("results/"+file_time+"/config.txt","w+")
+	fconfig = open("results/"+run_name+"/config.txt","w+")
 	for key in config.keys():
 		fconfig.write("{}\t{}\n".format(key, config[key]))
 
@@ -504,15 +612,28 @@ if __name__ == "__main__":
 
 	n_actions = len(env_player.action_space)
 
-
-	policy_net = SinglelineMediumBoy_DQN(config)
-
-	target_net = SinglelineMediumBoy_DQN(config)
-	target_net.load_state_dict(policy_net.state_dict())
-	target_net.eval()
+	if config.dqn_style == "single":
+		policy_net = SinglelineMediumBoy_DQN(config)
+		target_net = SinglelineMediumBoy_DQN(config)
+		target_net.load_state_dict(policy_net.state_dict())
+		target_net.eval()
+	else: #double DQN
+		policy_net_theta = SinglelineMediumBoy_DQN(config)
+		policy_net_prime = SinglelineMediumBoy_DQN(config)
+		target_net_theta = SinglelineMediumBoy_DQN(config)
+		target_net_prime = SinglelineMediumBoy_DQN(config)
+		target_net_theta.load_state_dict(policy_net_theta.state_dict())
+		target_net_theta.eval()
+		target_net_prime.load_state_dict(policy_net_prime.state_dict())
+		target_net_prime.eval()
 
 	#optimizer = optim.RMSprop(policy_net.parameters())
-	optimizer = optim.Adam(policy_net.parameters(), lr=config.learning_rate)
+	#TODO: Optimize params for both policy networks
+	if config.dqn_style == "double":
+		optimizer_theta = optim.Adam(policy_net_theta.parameters(), lr=config.learning_rate)
+		optimizer_prime = optim.Adam(policy_net_prime.parameters(), lr=config.learning_rate)
+	else:
+		optimizer = optim.Adam(policy_net.parameters(), lr=config.learning_rate)
 	memory = ReplayMemory(config.memory_size)
 
 	steps_done = 0
@@ -530,8 +651,12 @@ if __name__ == "__main__":
 		opponent=training_opp,
 		env_algorithm_kwargs={"nb_steps": config.nb_training_steps},
 	)
-	model_path = os.path.join(writepath, "saved_model.torch")
-	torch.save(policy_net.state_dict(), model_path)
+	if config.dqn_style == "double":
+		torch.save(policy_net_theta.state_dict(), os.path.join(writepath, "saved_model_theta.torch"))
+		torch.save(policy_net_prime.state_dict(), os.path.join(writepath, "saved_model_prime.torch"))
+	else:
+		model_path = os.path.join(writepath, "saved_model.torch")
+		torch.save(policy_net.state_dict(), model_path)
 
 	old_stdout = sys.stdout
 	result = StringIO()
