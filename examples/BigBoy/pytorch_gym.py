@@ -649,10 +649,10 @@ if __name__ == "__main__":
 	else:
 		optimizer = optim.Adam(policy_net.parameters(), lr=config.learning_rate)
 
-	env_dict = {"obs": {"shape": (270, 1)},
+	env_dict = {"obs": {"shape": (434, 1)},
 				"act": {},
 				"rew": {},
-				"next_obs": {"shape": (270, 1)},
+				"next_obs": {"shape": (434, 1)},
 				#"done": {}
 				}
 	rb = cpprb.ReplayBuffer(config.memory_size, env_dict)#ReplayMemory(config.memory_size)
