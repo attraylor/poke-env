@@ -328,7 +328,8 @@ def optimize_model_double():
 
 	train_data = torch.utils.data.DataLoader(memory, batch_size = config.batch_size)#collate_fn = custom_bigboy_collate)
 	batch_cap = config.batch_cap
-	batch_loss = 0
+	batch_loss_theta = 0
+	batch_loss_prime = 0
 	for idx, batch in enumerate(train_data):
 		# Compute a mask of non-final states and concatenate the batch elements
 		# (a final state would've been the one after which simulation ended)
@@ -388,14 +389,17 @@ def optimize_model_double():
 		loss_theta = F.smooth_l1_loss(state_action_values_theta, expected_state_action_values_theta)
 		loss_prime = F.smooth_l1_loss(state_action_values_prime, expected_state_action_values_prime)
 		#x = input("sav")
-		loss_hist.append(loss_theta)
-		batch_loss += loss_theta
+
 		# Optimize the model
 		optimizer_theta.zero_grad()
 		optimizer_prime.zero_grad()
 		if idx % 2 == 0:
+			loss_hist_theta.append(loss_theta)
+			batch_loss_theta += loss_theta
 			loss_theta.backward()
 		else:
+			loss_hist_prime.append(loss_prime)
+			batch_loss_prime += loss_prime
 			loss_prime.backward()
 		for name, param in policy_net_theta.named_parameters():
 			if param.grad is not None:
@@ -408,7 +412,7 @@ def optimize_model_double():
 		optimizer_prime.step()
 		if idx > batch_cap:
 			break
-	wandb.log({"loss": batch_loss})
+	wandb.log({"loss_theta": batch_loss_theta, "loss_prime": batch_loss_prime})
 	return
 
 
