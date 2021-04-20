@@ -612,16 +612,20 @@ if __name__ == "__main__":
 
 	n_actions = len(env_player.action_space)
 
+	if "ou" in config.our_team_name and not "starter" in config.our_team_name:
+		model_type = SinglelineMediumBoy_DQN
+	else:
+		model_type = TeenyBoy_DQN
 	if config.dqn_style == "single":
-		policy_net = SinglelineMediumBoy_DQN(config)
-		target_net = SinglelineMediumBoy_DQN(config)
+		policy_net = model_type(config)
+		target_net = model_type(config)
 		target_net.load_state_dict(policy_net.state_dict())
 		target_net.eval()
 	else: #double DQN
-		policy_net_theta = SinglelineMediumBoy_DQN(config)
-		policy_net_prime = SinglelineMediumBoy_DQN(config)
-		target_net_theta = SinglelineMediumBoy_DQN(config)
-		target_net_prime = SinglelineMediumBoy_DQN(config)
+		policy_net_theta = model_type(config)
+		policy_net_prime = model_type(config)
+		target_net_theta = model_type(config)
+		target_net_prime = model_type(config)
 		target_net_theta.load_state_dict(policy_net_theta.state_dict())
 		target_net_theta.eval()
 		target_net_prime.load_state_dict(policy_net_prime.state_dict())
