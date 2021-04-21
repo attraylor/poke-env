@@ -327,6 +327,7 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 def optimize_model_double():
 	global config
 	global field_to_idx
+	global rb_beta
 
 	#train_data = torch.utils.data.DataLoader(memory, batch_size = config.batch_size)#collate_fn = custom_bigboy_collate)
 	batch_cap = config.batch_cap
@@ -429,6 +430,7 @@ def optimize_model_double():
 def optimize_model():
 	global config
 	global field_to_idx
+	global rb_beta
 	'''if len(memory) < config.batch_size:
 		return'''
 
