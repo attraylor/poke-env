@@ -546,6 +546,7 @@ class RandomTeamFromPool(Teambuilder):
 if __name__ == "__main__":
 	global config
 	global transitions_path
+	global rb_beta
 	hyperparameter_defaults = dict(
 		experiment_name = "BigBoy",
 		dqn_style = "double",
@@ -669,7 +670,7 @@ if __name__ == "__main__":
 				"next_obs": {"shape": (434, 1)},
 				"done": {}
 				}
-	beta = config.rb_beta #.4
+	rb_beta = config.rb_beta #.4
 	rb = cpprb.PrioritizedReplayBuffer(config.memory_size, env_dict)#ReplayMemory(config.memory_size)
 
 	steps_done = 0
