@@ -334,7 +334,7 @@ def optimize_model_double():
 	batch_loss_theta = 0
 	batch_loss_prime = 0
 	for idx in range(0, batch_cap):
-		batch = rb.sample(config.batch_size, beta = rb_beta)#, batch in enumerate(train_data):
+		batch = rb.sample(config.batch_size, beta = .4)#, batch in enumerate(train_data):
 		# Compute a mask of non-final states and concatenate the batch elements
 		# (a final state would've been the one after which simulation ended)
 		state_batch = torch.FloatTensor(batch["obs"].squeeze(2))
