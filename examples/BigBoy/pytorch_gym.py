@@ -340,6 +340,7 @@ def optimize_model_double():
 		action_batch = torch.LongTensor(batch["act"])
 		next_state = torch.FloatTensor(batch["next_obs"].squeeze(2))
 		reward_batch = torch.FloatTensor(batch["rew"])
+		done_batch = torch.BoolTensor(batch["done"])
 		#print(state_batch.shape, action_batch.shape, next_state.shape, reward_batch.shape)
 
 
@@ -369,9 +370,11 @@ def optimize_model_double():
 		# state value or 0 in case the state was final.
 		next_state_values_theta = target_net_theta(next_state, field_to_idx)
 		next_state_values_theta = next_state_values_theta.gather(1, max_action_indices_prime.unsqueeze(1))
+		next_state_values_theta[done_batch == True] = 0
 
 		next_state_values_prime = target_net_prime(next_state, field_to_idx)
 		next_state_values_prime = next_state_values_prime.gather(1, max_action_indices_theta.unsqueeze(1))
+		next_state_values_prime[done_batch == True] = 0
 		#next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
 		# Compute the expected Q values
 		expected_state_action_values_theta = (next_state_values_theta * config.gamma) + reward_batch
@@ -440,6 +443,10 @@ def optimize_model():
 	batch_loss = 0
 	for idx in range(0, batch_cap):
 		batch = rb.sample(config.batch_size)#, batch in enumerate(train_data):
+		state_batch = torch.FloatTensor(batch["obs"].squeeze(2))
+		action_batch = torch.LongTensor(batch["act"])
+		next_state = torch.FloatTensor(batch["next_obs"].squeeze(2))
+		reward_batch = torch.FloatTensor(batch["rew"])
 		# Compute a mask of non-final states and concatenate the batch elements
 		# (a final state would've been the one after which simulation ended)
 		state_batch = batch["obs"]
@@ -654,7 +661,7 @@ if __name__ == "__main__":
 				"act": {},
 				"rew": {},
 				"next_obs": {"shape": (434, 1)},
-				#"done": {}
+				"done": {}
 				}
 	rb = cpprb.ReplayBuffer(config.memory_size, env_dict)#ReplayMemory(config.memory_size)
 
