@@ -333,7 +333,7 @@ def optimize_model_double():
 	batch_loss_theta = 0
 	batch_loss_prime = 0
 	for idx in range(0, batch_cap):
-		batch = rb.sample(config.batch_size)#, batch in enumerate(train_data):
+		batch = rb.sample(config.batch_size, beta = rb_beta)#, batch in enumerate(train_data):
 		# Compute a mask of non-final states and concatenate the batch elements
 		# (a final state would've been the one after which simulation ended)
 		state_batch = torch.FloatTensor(batch["obs"].squeeze(2))
@@ -442,11 +442,13 @@ def optimize_model():
 	batch_cap = config.batch_cap
 	batch_loss = 0
 	for idx in range(0, batch_cap):
-		batch = rb.sample(config.batch_size)#, batch in enumerate(train_data):
+		batch = rb.sample(config.batch_size, beta = rb_beta)#, batch in enumerate(train_data):
 		state_batch = torch.FloatTensor(batch["obs"].squeeze(2))
 		action_batch = torch.LongTensor(batch["act"])
 		next_state = torch.FloatTensor(batch["next_obs"].squeeze(2))
 		reward_batch = torch.FloatTensor(batch["rew"])
+		done_batch = torch.BoolTensor(batch["done"])
+
 		# Compute a mask of non-final states and concatenate the batch elements
 		# (a final state would've been the one after which simulation ended)
 		state_batch = batch["obs"]
@@ -484,6 +486,7 @@ def optimize_model():
 		#next_state = torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False)
 		next_state_values = target_net(next_state, field_to_idx)
 		next_state_values = next_state_values.max(1)[0].detach().unsqueeze(1)
+		next_state_values[done_batch == True] = 0
 		#next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
 		# Compute the expected Q values
 		expected_state_action_values = (next_state_values * config.gamma) + reward_batch
@@ -574,7 +577,8 @@ if __name__ == "__main__":
 		complete_state_output_dim = 22,
 		seed = 420,
 		num_layers = 1,
-		save_transitions = False
+		save_transitions = False,
+		rb_beta = .4
 	)
 
 	wandb.init(config=hyperparameter_defaults)
@@ -663,7 +667,8 @@ if __name__ == "__main__":
 				"next_obs": {"shape": (434, 1)},
 				"done": {}
 				}
-	rb = cpprb.ReplayBuffer(config.memory_size, env_dict)#ReplayMemory(config.memory_size)
+	beta = config.rb_beta #.4
+	rb = cpprb.PrioritizedReplayBuffer(config.memory_size, env_dict)#ReplayMemory(config.memory_size)
 
 	steps_done = 0
 
