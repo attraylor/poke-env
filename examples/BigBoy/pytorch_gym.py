@@ -336,10 +336,10 @@ def optimize_model_double():
 		batch = rb.sample(config.batch_size)#, batch in enumerate(train_data):
 		# Compute a mask of non-final states and concatenate the batch elements
 		# (a final state would've been the one after which simulation ended)
-		state_batch = batch["obs"]
-		action_batch = batch["act"]
-		next_state = batch["next_obs"]
-		reward_batch = batch["rew"]
+		state_batch = torch.FloatTensor(batch["obs"])
+		action_batch = torch.LongTensor(batch["act"])
+		next_state = torch.FloatTensor(batch["next_obs"])
+		reward_batch = torch.FloatTensor(batch["rew"])
 
 
 		q_values_theta = policy_net_theta(state_batch, field_to_idx)
