@@ -200,7 +200,7 @@ def fit(player, nb_steps):
 				#next_state = deepcopy(torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False))
 				reward = torch.FloatTensor([reward])
 				episode_reward += reward
-				wandb.log({"cumulative_reward": episode_reward})
+				#wandb.log({"cumulative_reward": episode_reward})
 				#tq.set_description("Reward: {:.3f}".format(episode_reward.item()))
 				reward_hist.append(episode_reward.item())
 				#x = input("reward {} ".format(reward))
@@ -288,11 +288,11 @@ def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 			np.exp(-1 * current_step / eps_decay)
 
 	wandb.log({"q_values_move1": q_values[0]})
-	wandb.log({"q_values_move2": q_values[1]})
+	'''wandb.log({"q_values_move2": q_values[1]})
 	wandb.log({"q_values_move3": q_values[2]})
 	#wandb.log({"q_values_move4": q_values[3]})
 	wandb.log({"q_values_switch_1": q_values[-6]})
-	wandb.log({"q_values_switch_2": q_values[-5]})
+	wandb.log({"q_values_switch_2": q_values[-5]})'''
 
 	if action_mask != None:
 		#Mask out to only actions that are legal within the state space.
@@ -694,6 +694,8 @@ if __name__ == "__main__":
 		model_path = os.path.join(writepath, "saved_model.torch")
 		torch.save(policy_net.state_dict(), model_path)
 
+
+	print("***** Model saved, run complete *****")
 	old_stdout = sys.stdout
 	result = StringIO()
 	sys.stdout = result#open("results/"+file_time+"/log_games.txt","w+")
