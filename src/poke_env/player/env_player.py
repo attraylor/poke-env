@@ -561,6 +561,20 @@ class Gen7EnvSinglePlayer(EnvPlayer):  # pyre-ignore
         """
         return self._ACTION_SPACE
 
+    def legal_action_mask(self, battle : Battle) -> List:
+        legal_actions = [0] * 18
+        if not battle.force_switch:
+            for i in range(0, len(battle.available_moves)):
+                legal_actions[i] = 1
+            if battle.can_z_move:
+                for i in range(4, 4+len(battle.active_pokemon.available_z_moves)):
+                    legal_actions[i] = 1
+            if battle.can_mega_evolve:
+                for i in range(8, 8 + len(battle.available_moves)):
+                    legal_actions[i] = 1
+        for i in range(12, 12 + len(battle.available_switches)):
+            legal_actions[i] += 1
+        return legal_actions
 
 class Gen8EnvSinglePlayer(EnvPlayer):  # pyre-ignore
     _ACTION_SPACE = list(range(4 * 4 + 6))
