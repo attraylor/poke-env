@@ -99,22 +99,23 @@ class SinglelineMediumBoy_DQN(nn.Module):
 						-bool: for 0/1 input
 			- opponent_team: List of pokemon object dictionaries
 			"""
+		team_order = ["active", 0, 1, 2, 3, 4, 5]
 		if len(batch.shape) == 1:
 			batch_size = 1
 			batch = batch.unsqueeze(0)
 		else:
 			batch_size = batch.shape[0]
 		features = []
-		features.append(torch.FloatTensor(batch[:,field_to_idx["our_pokemon_1_move_powers"]]))
-		move_type_ids = self.type_embedding(batch[:,field_to_idx["our_pokemon_1_move_type_ids"]].long())
+		features.append(torch.FloatTensor(batch[:,field_to_idx["our_pokemon_active_move_powers"]]))
+		move_type_ids = self.type_embedding(batch[:,field_to_idx["our_pokemon_active_move_type_ids"]].long())
 		features.append(move_type_ids.reshape(batch_size, move_type_ids.shape[1] * move_type_ids.shape[2]))
-		features.append(torch.FloatTensor(batch[:,field_to_idx["our_pokemon_1_hp_percentage"]]))
 
-		features.append(torch.FloatTensor(batch[:,field_to_idx["our_pokemon_1_boosts"]]))
+		features.append(torch.FloatTensor(batch[:,field_to_idx["our_pokemon_active_boosts"]]))
 
 
-		for i in range(1, 7):
+		for i in team_order:
 			features.append(self.type_embedding(batch[:,field_to_idx["our_pokemon_{}_type_ids".format(i)][0]].long()) + self.type_embedding(batch[:,field_to_idx["our_pokemon_{}_type_ids".format(i)][1]].long()))
+			features.append(torch.FloatTensor(batch[:,field_to_idx["our_pokemon_{}_hp_percentage".format(i)]]))
 
 		features.append(self.type_embedding(batch[:,field_to_idx["opponent_pokemon_active_type_ids"][0]].long()) + self.type_embedding(batch[:,field_to_idx["opponent_pokemon_active_type_ids"][1]].long()))
 		features.append(torch.FloatTensor(batch[:,field_to_idx["opponent_pokemon_active_boosts"]]))

@@ -27,6 +27,7 @@ class SimpleHeuristicsPlayer(Player):
     HP_FRACTION_COEFICIENT = 0.4
     SWITCH_OUT_MATCHUP_THRESHOLD = -2
 
+
     def _estimate_matchup(self, mon, opponent):
         score = max([opponent.damage_multiplier(t) for t in mon.types if t is not None])
         score -= max(
@@ -68,6 +69,14 @@ class SimpleHeuristicsPlayer(Player):
     def _should_switch_out(self, battle):
         active = battle.active_pokemon
         opponent = battle.opponent_active_pokemon
+        if battle.turn == 1:
+            self.switches_in_a_row = 0
+        elif self.switches_in_a_row > 15 or battle.turn > 300 and self.switches_in_a_row > 6:
+            print("endless play clause")
+            self.switches_in_a_row = 0
+            return False
+        else:
+            self.switches_in_a_row += 1
         # If there is a decent switch in...
         if [
             m
@@ -92,6 +101,7 @@ class SimpleHeuristicsPlayer(Player):
                 < self.SWITCH_OUT_MATCHUP_THRESHOLD
             ):
                 return True
+        self.switches_in_a_row = 0
         return False
 
     def _stat_estimation(self, mon, stat):

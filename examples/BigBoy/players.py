@@ -45,12 +45,23 @@ class BigBoyRLPlayer(Gen8EnvSinglePlayer):
 	def embed_battle(self, battle):
 		final_state_dict = {}
 		team = []
-		active_pokemon = battle.active_pokemon
-		switches = battle.available_switches
-		fainted_padding = [None] * (5 - len(switches))
-		pokemon_objects = [active_pokemon] + switches + fainted_padding
-		assert len(pokemon_objects) == 6
-		for idx, pokemon in enumerate(pokemon_objects):#battle.team.keys(): #thought this was a method
+		for idx in range(0, 6):
+			pokemon_name = self.stable_team_inv[idx]
+			pokemon_obj = battle.team[pokemon_name]
+			if pokemon_obj.is_fainted == True:
+				team.append(None)
+			else:
+				team.append(pokemon_obj)
+
+		#active_pokemon = battle.active_pokemon
+		#switches = battle.available_switches
+		#fainted_padding = [None] * (5 - len(switches))
+		pokemon_objects = [active_pokemon] + team
+		assert len(pokemon_objects) == 6 + 1
+		team_order = ["active", 0, 1, 2, 3, 4, 5]
+		#for idx, pokemon in enumerate(pokemon_objects):#battle.team.keys(): #thought this was a method
+
+		for idx, pokemon in zip(team_order, pokemon_objects):
 			#pokemon = battle.team[pokemon_key]
 			pokemon_information = {}
 
@@ -369,8 +380,11 @@ class SingleLineRLPlayer(Gen8EnvSinglePlayer):
 
 		active_pokemon = battle.active_pokemon
 		switches = battle.available_switches
-		fainted_padding = [None] * (5 - len(switches))
-		pokemon_objects = [active_pokemon] + switches + fainted_padding
+		#TODO Represent active pokemon somehow??
+		pokemon_objects = [battle.team[self.stable_team_inv[i]] if battle.team[self.stable_team_inv[i]].fainted == False else None for i in range(0, 6)]
+
+
+		#pokemon_objects = [active_pokemon] + switches + fainted_padding
 
 
 		for idx, pokemon in enumerate(pokemon_objects):#battle.team.keys(): #thought this was a method
