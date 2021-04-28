@@ -218,7 +218,7 @@ def fit(player, nb_steps):
 						test=False, eps_start = config.eps_start, eps_end = config.eps_end,
 						eps_decay = config.eps_decay,
 						nb_episodes = config.nb_training_steps, current_step = i_episode)
-				showdown_action = convert_to_showdown(action.item(), stable_team, switch_map)
+				showdown_action = convert_to_showdown(action.item(), stable_team_inv, switch_map)
 				next_state, reward, done, info = env_player.step(showdown_action)
 				#next_state = deepcopy(torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False))
 				reward = torch.FloatTensor([reward])
@@ -280,7 +280,8 @@ def test(player, nb_episodes):
 				# Select and perform an action
 				field_to_idx = player.field_to_idx
 				switch_map = make_switch_map(stable_team, env_player._current_battle.available_switches)
-				action = select_action(state, env_player.gen8_legal_action_mask(env_player._current_battle, stable_team, switch_map),
+				action = select_action(state, stable_team, switch_map,
+						env_player.gen8_legal_action_mask(env_player._current_battle, stable_team, switch_map),
 						test=True)
 				next_state, reward, done, info = env_player.step(action.item())
 				next_state = torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False)
@@ -601,8 +602,8 @@ if __name__ == "__main__":
 			eps_decay = 1000,
 			target_update = 5,
 			learning_rate = 0.001,
-			nb_training_steps = 20000,
-			nb_evaluation_episodes = 100,
+			nb_training_steps = 3,
+			nb_evaluation_episodes = 1,
 			species_emb_dim = 3,
 			move_emb_dim = 3,
 			item_emb_dim = 1,
