@@ -698,10 +698,10 @@ if __name__ == "__main__":
 
 	#optimizer = optim.RMSprop(policy_net.parameters())
 
-	env_dict = {"obs": {"shape": (434, 1)},
+	env_dict = {"obs": {"shape": (495, 1)},
 				"act": {},
 				"rew": {},
-				"next_obs": {"shape": (434, 1)},
+				"next_obs": {"shape": (495, 1)},
 				"done": {}
 				}
 	rb_beta = config.rb_beta #.4
