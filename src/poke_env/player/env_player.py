@@ -8,7 +8,7 @@ from gym.core import Env  # pyre-ignore
 from queue import Queue
 from threading import Thread
 
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union, Dict
 
 from poke_env.environment.abstract_battle import AbstractBattle
 from poke_env.environment.battle import Battle
@@ -541,7 +541,7 @@ class Gen7EnvSinglePlayer(EnvPlayer):  # pyre-ignore
         else:
             return self.choose_random_move(battle)
 
-    def gen8_legal_action_mask(self, battle : Battle, stable_team : Dictionary, switch_map : Dictionary) -> List:
+    def gen8_legal_action_mask(self, battle : Battle, stable_team : Dict, switch_map : Dict) -> List:
         legal_actions = [0] * 22
         if not battle.force_switch:
             for i in range(0, len(battle.available_moves)):
@@ -555,9 +555,9 @@ class Gen7EnvSinglePlayer(EnvPlayer):  # pyre-ignore
             if battle.can_dynamax:
                 for i in range(12, 12 + len(battle.available_moves)):
                     legal_actions[i] = 1
-		for pokemon_name, stable_idx in stable_team.items():
-			if pokemon_name in switch_map.keys():
-				legal_actions[stable_idx + 16] = 1
+        for pokemon_name, stable_idx in stable_team.items():
+            if pokemon_name in switch_map.keys():
+                legal_actions[stable_idx + 16] = 1
         return legal_actions
 
 
@@ -689,8 +689,9 @@ class Gen8EnvSinglePlayer(EnvPlayer):  # pyre-ignore
                 executed.
         """
         return self._ACTION_SPACE
-    def legal_action_mask(self, battle : Battle) -> List:
-        legal_actions = [0] * 18
+		
+    def gen8_legal_action_mask(self, battle : Battle, stable_team : Dict, switch_map : Dict) -> List:
+        legal_actions = [0] * 22
         if not battle.force_switch:
             for i in range(0, len(battle.available_moves)):
                 legal_actions[i] = 1
@@ -700,6 +701,10 @@ class Gen8EnvSinglePlayer(EnvPlayer):  # pyre-ignore
             if battle.can_mega_evolve:
                 for i in range(8, 8 + len(battle.available_moves)):
                     legal_actions[i] = 1
-        for i in range(12, 12 + len(battle.available_switches)):
-            legal_actions[i] += 1
+            if battle.can_dynamax:
+                for i in range(12, 12 + len(battle.available_moves)):
+                    legal_actions[i] = 1
+        for pokemon_name, stable_idx in stable_team.items():
+            if pokemon_name in switch_map.keys():
+                legal_actions[stable_idx + 16] = 1
         return legal_actions

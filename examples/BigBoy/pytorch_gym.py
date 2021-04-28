@@ -170,26 +170,10 @@ def custom_bigboy_collate(batch):
 	reward_batch = torch.FloatTensor(reward_batch)
 	return state_batch, action_batch, next_state_batch, reward_batch
 
-def pokemon_mapping(team):
-	"""
-	PRECONDITION: Species clause.
-	Input:
-		team: dict(Pokemon objects)
-	Output:
-		stable_team: {str pokemon_name : int idx}
-		stable_team_inv: {int idx : str_pokemon_name}
-	"""
-	stable_team = {}
-	stable_team_inv = {}
-	for idx, pokemon_name in enumerate(team.keys()): #str
-		stable_team[pokemon_name] = idx
-		stable_team_inv[idx] = pokemon_name
-	return stable_team, stable_team_inv
-
 def make_switch_map(stable_team, available_switches):
 	#available_switches is list of pokemon objects in order of how game expects them to be switched in
 	#e.g. [pikachu, bulbasaur, charmander] = pikachu is switch1
-	switch_map = {pokemon.name : idx for idx, pokemon in enumerate(available_switches)}
+	switch_map = {pokemon.species : idx for idx, pokemon in enumerate(available_switches)}
 	return switch_map
 
 def convert_to_showdown(action, stable_team_inv, switch_map):
@@ -219,16 +203,18 @@ def fit(player, nb_steps):
 		if state is None:  # start of a new episode
 			# Initialize the environment and state
 			state = deepcopy(env_player.reset())
-			stable_team, stable_team_inv = pokemon_mapping(env_player._current_battle.team)
-			player.stable_team = stable_team
+			#stable_team, stable_team_inv = pokemon_mapping(env_player._current_battle.team)
+			stable_team = player.stable_team
+			stable_team_inv = player.stable_team_inv
+
 			if type(state) in [list, np.ndarray]:
 				state = torch.autograd.Variable(torch.Tensor(state), requires_grad=False)
 			for t in count():
 				# Select and perform an action
 				field_to_idx = player.field_to_idx
-				switch_map = make_switch_map(env_player._current_battle.available_switches)
+				switch_map = make_switch_map(stable_team, env_player._current_battle.available_switches)
 				action = select_action(state, stable_team, switch_map,
-						env_player.gen8_legal_action_mask(env_player._current_battle, switch_map),
+						env_player.gen8_legal_action_mask(env_player._current_battle, stable_team, switch_map),
 						test=False, eps_start = config.eps_start, eps_end = config.eps_end,
 						eps_decay = config.eps_decay,
 						nb_episodes = config.nb_training_steps, current_step = i_episode)
@@ -286,12 +272,15 @@ def test(player, nb_episodes):
 		if state is None:  # start of a new episode
 			# Initialize the environment and state
 			state = deepcopy(env_player.reset())
+			stable_team = player.stable_team
+			stable_team_inv = player.stable_team_inv
 			if type(state) in [list, np.ndarray]:
 				state = torch.autograd.Variable(torch.Tensor(state), requires_grad=False)
 			for t in count():
 				# Select and perform an action
 				field_to_idx = player.field_to_idx
-				action = select_action(state, env_player.gen8_legal_action_mask(env_player._current_battle, switch_map),
+				switch_map = make_switch_map(stable_team, env_player._current_battle.available_switches)
+				action = select_action(state, env_player.gen8_legal_action_mask(env_player._current_battle, stable_team, switch_map),
 						test=True)
 				next_state, reward, done, info = env_player.step(action.item())
 				next_state = torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False)
@@ -315,9 +304,9 @@ def select_action(state, stable_team, switch_map, action_mask = None, test= Fals
 	verbose = False
 	with torch.no_grad():
 		if config.dqn_style == "double":
-			q_values = policy_net_prime(state,field_to_idx, stable_team, verbose=verbose)
+			q_values = policy_net_prime(state,field_to_idx, verbose=verbose)
 		else:
-			q_values = policy_net(state,field_to_idx, stable_team, verbose=verbose)
+			q_values = policy_net(state,field_to_idx, verbose=verbose)
 	q_values = q_values.squeeze(0)
 
 	assert len(q_values.shape) == 1
@@ -599,8 +588,8 @@ if __name__ == "__main__":
 		hyperparameter_defaults = dict(
 			experiment_name = "BigBoy",
 			dqn_style = "double",
-			opponent_team_name = "starters",
-			our_team_name = "starters",
+			opponent_team_name = "ou_2",
+			our_team_name = "ou_2",
 			opponent_ai = "max",
 			batch_size = 50, #Size of the batches from the memory
 			batch_cap = 2, #How many batches we take

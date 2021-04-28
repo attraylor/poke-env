@@ -116,6 +116,7 @@ class SinglelineMediumBoy_DQN(nn.Module):
 		for i in team_order:
 			features.append(self.type_embedding(batch[:,field_to_idx["our_pokemon_{}_type_ids".format(i)][0]].long()) + self.type_embedding(batch[:,field_to_idx["our_pokemon_{}_type_ids".format(i)][1]].long()))
 			features.append(torch.FloatTensor(batch[:,field_to_idx["our_pokemon_{}_hp_percentage".format(i)]]))
+			features.append(self.status_embedding(batch[:,field_to_idx["our_pokemon_{}_status_id".format(i)]].long()))
 
 		features.append(self.type_embedding(batch[:,field_to_idx["opponent_pokemon_active_type_ids"][0]].long()) + self.type_embedding(batch[:,field_to_idx["opponent_pokemon_active_type_ids"][1]].long()))
 		features.append(torch.FloatTensor(batch[:,field_to_idx["opponent_pokemon_active_boosts"]]))
@@ -130,8 +131,6 @@ class SinglelineMediumBoy_DQN(nn.Module):
 		features.append(torch.FloatTensor(batch[:,field_to_idx["opponent_side_conditions"][7]]).unsqueeze(1))
 
 		#STATUSED?
-		for i in range(1, 7):
-			features.append(self.status_embedding(batch[:,field_to_idx["our_pokemon_{}_status_id".format(i)]].long()))
 		features.append(self.status_embedding(batch[:,field_to_idx["opponent_pokemon_active_status_id"]].long()))
 
 		#TODO: knock off, move IDs, opponent team backup pokemon, trapped?, uturn
