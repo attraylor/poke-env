@@ -689,7 +689,7 @@ class Gen8EnvSinglePlayer(EnvPlayer):  # pyre-ignore
         """
         return self._ACTION_SPACE
 
-    def gen8_legal_action_mask(self, battle : Battle, stable_team : Dict, switch_map : Dict) -> List:
+    def gen8_legal_action_mask(self, battle : Battle) -> List:
         legal_actions = [0] * 22
         if not battle.force_switch:
             for i in range(0, len(battle.available_moves)):
@@ -703,7 +703,6 @@ class Gen8EnvSinglePlayer(EnvPlayer):  # pyre-ignore
             if battle.can_dynamax:
                 for i in range(12, 12 + len(battle.available_moves)):
                     legal_actions[i] = 1
-        for pokemon_name, stable_idx in stable_team.items():
-            if pokemon_name in switch_map.keys():
-                legal_actions[stable_idx + 16] = 1
+        for i in range(16, 16 + len(battle.available_switches)):
+            legal_actions[i] += 1
         return legal_actions
