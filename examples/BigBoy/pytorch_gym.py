@@ -248,8 +248,6 @@ def test(player, nb_episodes):
 		if state is None:  # start of a new episode
 			# Initialize the environment and state
 			state = deepcopy(env_player.reset())
-			stable_team = player.stable_team
-			stable_team_inv = player.stable_team_inv
 			if type(state) in [list, np.ndarray]:
 				state = torch.autograd.Variable(torch.Tensor(state), requires_grad=False)
 			for t in count():

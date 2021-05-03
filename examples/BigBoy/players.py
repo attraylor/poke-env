@@ -363,30 +363,7 @@ class BigBoyRLPlayer(Gen8EnvSinglePlayer):
 
 class SingleLineRLPlayer(Gen8EnvSinglePlayer):
 
-	def create_pokemon_mapping(self, team):
-		"""
-		PRECONDITION: Species clause.
-		Input:
-			team: dict(Pokemon objects)
-		Output:
-			stable_team: {str pokemon_name : int idx}
-			stable_team_inv: {int idx : str_pokemon_name}
-		"""
-		stable_team = {}
-		stable_team_inv = {}
-		stable_team_p1name = {}
-		for idx, pokemon_name in enumerate(team.keys()): #str
-			species_name = team[pokemon_name].species
-			stable_team[species_name] = idx
-			stable_team_p1name[species_name] = pokemon_name
-			stable_team_inv[idx] = species_name
-		self.stable_team = stable_team
-		self.stable_team_inv = stable_team_inv
-		self.stable_team_p1name = stable_team_p1name
-
 	def embed_battle(self, battle):
-		if battle.turn == 1:
-			self.create_pokemon_mapping(battle.team)
 		state = []
 		ind_dict = {}
 		index = 0
@@ -399,9 +376,8 @@ class SingleLineRLPlayer(Gen8EnvSinglePlayer):
 		#active_pokemon = battle.active_pokemon
 		#switches = battle.available_switches
 		#fainted_padding = [None] * (5 - len(switches))
-		pokemon_objects = [battle.active_pokemon] + team
-		assert len(pokemon_objects) == 6 + 1
-		team_order = ["active", 0, 1, 2, 3, 4, 5]
+		assert len(pokemon_objects) == 6
+		team_order = [1, 2, 3, 4, 5, 6]
 		#for idx, pokemon in enumerate(pokemon_objects):#battle.team.keys(): #thought this was a method
 
 		for idx, pokemon in zip(team_order, pokemon_objects):
