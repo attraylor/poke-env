@@ -67,7 +67,7 @@ class SinglelineMediumBoy_DQN(nn.Module):
 		self.status_embedding.weight.data = torch.FloatTensor(np.eye(7))
 		self.status_embedding.weight.requires_grad = False
 
-		self.input_dim = 314
+		self.input_dim = 284
 		self.hidden_dim = config.complete_state_hidden_dim
 		self.output_dim = 22
 		self.input_layer = 	nn.Linear(self.input_dim, self.hidden_dim)
