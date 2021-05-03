@@ -45,6 +45,7 @@ class BigBoyRLPlayer(Gen8EnvSinglePlayer):
 	def embed_battle(self, battle):
 		final_state_dict = {}
 		team = []
+<<<<<<< HEAD
 		for idx in range(0, 6):
 			pokemon_name = self.stable_team_inv[idx]
 			pokemon_obj = battle.team[pokemon_name]
@@ -62,6 +63,14 @@ class BigBoyRLPlayer(Gen8EnvSinglePlayer):
 		#for idx, pokemon in enumerate(pokemon_objects):#battle.team.keys(): #thought this was a method
 
 		for idx, pokemon in zip(team_order, pokemon_objects):
+=======
+		active_pokemon = battle.active_pokemon
+		switches = battle.available_switches
+		fainted_padding = [None] * (5 - len(switches))
+		pokemon_objects = [active_pokemon] + switches + fainted_padding
+		assert len(pokemon_objects) == 6
+		for idx, pokemon in enumerate(pokemon_objects):#battle.team.keys(): #thought this was a method
+>>>>>>> parent of 200eb8b... First stab at stable team indexing
 			#pokemon = battle.team[pokemon_key]
 			pokemon_information = {}
 
@@ -402,14 +411,10 @@ class SingleLineRLPlayer(Gen8EnvSinglePlayer):
 		ind_dict = {}
 		index = 0
 
-		team = []
-		for idx in range(0, 6):
-			pokemon_name = self.stable_team_p1name[self.stable_team_inv[idx]]
-			pokemon_obj = battle.team[pokemon_name]
-			if pokemon_obj.fainted == True:
-				team.append(None)
-			else:
-				team.append(pokemon_obj)
+		active_pokemon = battle.active_pokemon
+		switches = battle.available_switches
+		fainted_padding = [None] * (5 - len(switches))
+		pokemon_objects = [active_pokemon] + switches + fainted_padding
 
 		#active_pokemon = battle.active_pokemon
 		#switches = battle.available_switches

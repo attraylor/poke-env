@@ -170,22 +170,6 @@ def custom_bigboy_collate(batch):
 	reward_batch = torch.FloatTensor(reward_batch)
 	return state_batch, action_batch, next_state_batch, reward_batch
 
-def make_switch_map(stable_team, available_switches):
-	#available_switches is list of pokemon objects in order of how game expects them to be switched in
-	#e.g. [pikachu, bulbasaur, charmander] = pikachu is switch1
-	switch_map = {pokemon.species : idx for idx, pokemon in enumerate(available_switches)}
-	return switch_map
-
-def convert_to_showdown(action, stable_team_inv, switch_map):
-	if action < 16:
-		return action #no change for a battle action
-	else:
-		stable_idx = action - 16
-		#first, figure out what we're switching to
-		pokemon_name = stable_team_inv[stable_idx]
-		switch_idx = switch_map[pokemon_name] + 16
-		return switch_idx
-
 def fit(player, nb_steps):
 	global field_to_idx
 	push = 0
@@ -203,23 +187,16 @@ def fit(player, nb_steps):
 		if state is None:  # start of a new episode
 			# Initialize the environment and state
 			state = deepcopy(env_player.reset())
-			#stable_team, stable_team_inv = pokemon_mapping(env_player._current_battle.team)
-			stable_team = player.stable_team
-			stable_team_inv = player.stable_team_inv
-
 			if type(state) in [list, np.ndarray]:
 				state = torch.autograd.Variable(torch.Tensor(state), requires_grad=False)
 			for t in count():
 				# Select and perform an action
 				field_to_idx = player.field_to_idx
-				switch_map = make_switch_map(stable_team, env_player._current_battle.available_switches)
-				action = select_action(state, stable_team, switch_map,
-						env_player.gen8_legal_action_mask(env_player._current_battle, stable_team, switch_map),
+				action = select_action(state, env_player.gen8_legal_action_mask(env_player._current_battle),
 						test=False, eps_start = config.eps_start, eps_end = config.eps_end,
 						eps_decay = config.eps_decay,
 						nb_episodes = config.nb_training_steps, current_step = i_episode)
-				showdown_action = convert_to_showdown(action.item(), stable_team_inv, switch_map)
-				next_state, reward, done, info = env_player.step(showdown_action)
+				next_state, reward, done, info = env_player.step(action.item())
 				#next_state = deepcopy(torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False))
 				reward = torch.FloatTensor([reward])
 				episode_reward += reward
@@ -263,7 +240,6 @@ def fit(player, nb_steps):
 torch.set_printoptions(sci_mode=False)
 
 def test(player, nb_episodes):
-	global field_to_idx
 	#tq = trange(nb_episodes, desc="Reward: 0")
 	tq = range(nb_episodes)
 	episode_reward = 0
@@ -278,10 +254,7 @@ def test(player, nb_episodes):
 				state = torch.autograd.Variable(torch.Tensor(state), requires_grad=False)
 			for t in count():
 				# Select and perform an action
-				field_to_idx = player.field_to_idx
-				switch_map = make_switch_map(stable_team, env_player._current_battle.available_switches)
-				action = select_action(state, stable_team, switch_map,
-						env_player.gen8_legal_action_mask(env_player._current_battle, stable_team, switch_map),
+				action = select_action(state, env_player.gen8_legal_action_mask(env_player._current_battle),
 						test=True)
 				next_state, reward, done, info = env_player.step(action.item())
 				next_state = torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False)
@@ -298,7 +271,7 @@ def test(player, nb_episodes):
 					#plot_durations()
 					break
 
-def select_action(state, stable_team, switch_map, action_mask = None, test= False, eps_start = 0.9,
+def select_action(state, action_mask = None, test= False, eps_start = 0.9,
 		eps_end = 0.05, eps_decay = 200, nb_episodes = 2000, current_step = 0):
 	global field_to_idx
 	#Epsilon greedy action selection with action mask from environment
@@ -317,6 +290,11 @@ def select_action(state, stable_team, switch_map, action_mask = None, test= Fals
 			np.exp(-1 * current_step / eps_decay)
 
 	wandb.log({"q_values_move1": q_values[0]})
+	'''wandb.log({"q_values_move2": q_values[1]})
+	wandb.log({"q_values_move3": q_values[2]})
+	#wandb.log({"q_values_move4": q_values[3]})
+	wandb.log({"q_values_switch_1": q_values[-6]})
+	wandb.log({"q_values_switch_2": q_values[-5]})'''
 
 	if action_mask != None:
 		#Mask out to only actions that are legal within the state space.
@@ -344,7 +322,6 @@ def select_action(state, stable_team, switch_map, action_mask = None, test= Fals
 		else:
 			action = np.argmax(q_values)
 			print("\n\n\nhmmmm\n\n\n")
-
 	return torch.LongTensor([action])
 
 
@@ -698,6 +675,12 @@ if __name__ == "__main__":
 		target_net_prime.eval()
 
 	#optimizer = optim.RMSprop(policy_net.parameters())
+	#TODO: Optimize params for both policy networks
+	if config.dqn_style == "double":
+		optimizer_theta = optim.Adam(policy_net_theta.parameters(), lr=config.learning_rate)
+		optimizer_prime = optim.Adam(policy_net_prime.parameters(), lr=config.learning_rate)
+	else:
+		optimizer = optim.Adam(policy_net.parameters(), lr=config.learning_rate)
 
 	env_dict = {"obs": {"shape": (495, 1)},
 				"act": {},
@@ -711,44 +694,26 @@ if __name__ == "__main__":
 	steps_done = 0
 
 	reward_hist = []
+	if config.opponent_ai == "random":
+		training_opp = opponent
+	elif config.opponent_ai == "max":
+		training_opp = second_opponent
+	elif config.opponent_ai == "shp":
+		training_opp = third_opponent
+	env_player.play_against(
+		env_algorithm=dqn_training,
+		opponent=training_opp,
+		env_algorithm_kwargs={"nb_steps": config.nb_training_steps},
+	)
+	if config.dqn_style == "double":
+		torch.save(policy_net_theta.state_dict(), os.path.join(writepath, "saved_model_theta.torch"))
+		torch.save(policy_net_prime.state_dict(), os.path.join(writepath, "saved_model_prime.torch"))
+	else:
+		model_path = os.path.join(writepath, "saved_model.torch")
+		torch.save(policy_net.state_dict(), model_path)
 
-	if test_only == False: #We are also training:
-		#TODO: Optimize params for both policy networks
-		if config.dqn_style == "double":
-			optimizer_theta = optim.Adam(policy_net_theta.parameters(), lr=config.learning_rate)
-			optimizer_prime = optim.Adam(policy_net_prime.parameters(), lr=config.learning_rate)
-		else:
-			optimizer = optim.Adam(policy_net.parameters(), lr=config.learning_rate)
 
-		if config.opponent_ai == "random":
-			training_opp = opponent
-		elif config.opponent_ai == "max":
-			training_opp = second_opponent
-		elif config.opponent_ai == "shp":
-			training_opp = third_opponent
-		env_player.play_against(
-			env_algorithm=dqn_training,
-			opponent=training_opp,
-			env_algorithm_kwargs={"nb_steps": config.nb_training_steps},
-		)
-		if config.dqn_style == "double":
-			torch.save(policy_net_theta.state_dict(), os.path.join(writepath, "saved_model_theta.torch"))
-			torch.save(policy_net_prime.state_dict(), os.path.join(writepath, "saved_model_prime.torch"))
-		else:
-			model_path = os.path.join(writepath, "saved_model.torch")
-			torch.save(policy_net.state_dict(), model_path)
-			print("***** Model saved, run complete *****")
-
-	else: #Test_only == True, so we load models from a directory path
-		if config.dqn_style == "double":
-			prime_path = os.path.join(config.test_directory, "saved_model_prime.torch")
-			theta_path = os.path.join(config.test_directory, "saved_model_theta.torch")
-			policy_net_prime.load_state_dict(torch.load(prime_path))
-			policy_net_theta.load_state_dict(torch.load(theta_path))
-		else:
-			model_path = os.path.join(config.test_directory, "saved_model.torch")
-			policy_net.load_state_dict(torch.load(model_path))
-
+	print("***** Model saved, run complete *****")
 	old_stdout = sys.stdout
 	result = StringIO()
 	sys.stdout = result#open("results/"+file_time+"/log_games.txt","w+")
