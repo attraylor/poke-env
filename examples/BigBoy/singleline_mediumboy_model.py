@@ -59,6 +59,7 @@ class SinglelineMediumBoy_DQN(nn.Module):
 		super(SinglelineMediumBoy_DQN, self).__init__()
 		#Embedding dimension sizes
 
+
 		self.type_embedding = nn.Embedding(19, 19)
 		self.type_embedding.weight.data = torch.FloatTensor(np.eye(19))
 		self.type_embedding.weight.requires_grad = False

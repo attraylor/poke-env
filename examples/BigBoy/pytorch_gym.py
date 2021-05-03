@@ -621,31 +621,41 @@ if __name__ == "__main__":
 	custom_builder = RandomTeamFromPool([teams[config.our_team_name]])
 	custom_builder2 = RandomTeamFromPool([teams[config.opponent_team_name]])
 
+
+	print("RUN NAME!!!", run_name, type(run_name))
+	short_run_name = run_name.split("-")
+	short_run_name = short_run_name[0][0:10] + short_run_name[2]
+	agent_name = "agent" + short_run_name
+	rand_name = "rand" + short_run_name
+	max_name = "max" + short_run_name
+	shp_name = "shp" + short_run_name
+
+	print(agent_name, rand_name, max_name, shp_name)
+
 	env_player = SingleLineRLPlayer(
-		player_configuration=PlayerConfiguration("SimpleRLPlayer", None),
+		player_configuration=PlayerConfiguration(agent_name, None),
 		battle_format="gen8ou",
 		team=custom_builder,
 		server_configuration=LocalhostServerConfiguration,
 	)
 
 	opponent = RandomPlayer(
-		player_configuration=PlayerConfiguration("Random player", None),
+		player_configuration=PlayerConfiguration(rand_name, None),
 		battle_format="gen8ou",
 		team=custom_builder2,
 		server_configuration=LocalhostServerConfiguration,
 	)
 
 
-
 	second_opponent = MaxDamagePlayer(
-		player_configuration=PlayerConfiguration("Max damage player", None),
+		player_configuration=PlayerConfiguration(max_name, None),
 		battle_format="gen8ou",
 		team=custom_builder2,
 		server_configuration=LocalhostServerConfiguration,
 	)
 
 	third_opponent = SimpleHeuristicsPlayer(
-		player_configuration=PlayerConfiguration("Simple heuristic player", None),
+		player_configuration=PlayerConfiguration(shp_name, None),
 		battle_format="gen8ou",
 		team=custom_builder2,
 		server_configuration=LocalhostServerConfiguration,
