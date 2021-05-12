@@ -15,6 +15,7 @@ from poke_env.teambuilder.teambuilder import Teambuilder
 from poke_env.teambuilder.constant_teambuilder import ConstantTeambuilder
 from poke_env.utils import to_id_str
 
+import numpy as np
 
 class MaxBasePowerPlayer(Player):
     def choose_move(self, battle):
