@@ -211,7 +211,16 @@ class EpsilonRandomSimpleHeuristicsPlayer(SimpleHeuristicsPlayer):
 	start_listening: bool = True,
 	team: Optional[Union[str, Teambuilder]] = None,
 	epsilon: int):
-		super().__init__()
+		super().__init__(
+			avatar = avatar,
+			battle_format = battle_format,
+			log_level = log_level,
+			max_concurrent_battles = max_concurrent_battles,
+			server_configuration = server_configuration,
+			start_timer_on_battle_start = start_timer_on_battle_start,
+			start_listening = start_listening,
+			team = team,
+			)
 		self.epsilon = epsilon
 
 	def choose_move(self, battle):
