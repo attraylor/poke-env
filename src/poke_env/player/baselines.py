@@ -11,6 +11,10 @@ from typing import Union
 from poke_env.player_configuration import PlayerConfiguration
 from poke_env.server_configuration import LocalhostServerConfiguration
 from poke_env.server_configuration import ServerConfiguration
+from poke_env.teambuilder.teambuilder import Teambuilder
+from poke_env.teambuilder.constant_teambuilder import ConstantTeambuilder
+from poke_env.utils import to_id_str
+
 
 class MaxBasePowerPlayer(Player):
     def choose_move(self, battle):
