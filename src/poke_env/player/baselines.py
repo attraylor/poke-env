@@ -4,6 +4,10 @@ from poke_env.environment.side_condition import SideCondition
 from poke_env.player.player import Player
 from poke_env.player.random_player import RandomPlayer  # noqa: F401
 
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Union
 
 class MaxBasePowerPlayer(Player):
     def choose_move(self, battle):
@@ -188,7 +192,18 @@ class SimpleHeuristicsPlayer(Player):
         return self.choose_random_move(battle)
 
 class EpsilonRandomSimpleHeuristicsPlayer(SimpleHeuristicsPlayer):
-	def __init__(self, epsilon):
+	def __init__(self,
+	player_configuration: Optional[PlayerConfiguration] = None,
+	*,
+	avatar: Optional[int] = None,
+	battle_format: str = "gen8randombattle",
+	log_level: Optional[int] = None,
+	max_concurrent_battles: int = 1,
+	server_configuration: Optional[ServerConfiguration] = None,
+	start_timer_on_battle_start: bool = False,
+	start_listening: bool = True,
+	team: Optional[Union[str, Teambuilder]] = None,
+	epsilon: int):
 		super().__init__()
 		self.epsilon = epsilon
 
