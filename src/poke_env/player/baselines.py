@@ -12,20 +12,6 @@ class MaxBasePowerPlayer(Player):
             return self.create_order(best_move)
         return self.choose_random_move(battle)
 
-class EpsilonRandomSimpleHeuristicsPlayer(SimpleHeuristicsPlayer):
-	def __init__(self, epsilon):
-		super().__init__()
-		self.epsilon = epsilon
-
-	def choose_move(self, battle):
-		random_roll = np.random.rand()
-		if random_roll > self.epsilon:
-			move = super().choose_move(battle)
-		else:
-			move = self.choose_random_move(battle)
-		return move
-
-
 class SimpleHeuristicsPlayer(Player):
     ENTRY_HAZARDS = {
         "spikes": SideCondition.SPIKES,
@@ -200,3 +186,16 @@ class SimpleHeuristicsPlayer(Player):
             )
 
         return self.choose_random_move(battle)
+
+class EpsilonRandomSimpleHeuristicsPlayer(SimpleHeuristicsPlayer):
+	def __init__(self, epsilon):
+		super().__init__()
+		self.epsilon = epsilon
+
+	def choose_move(self, battle):
+		random_roll = np.random.rand()
+		if random_roll > self.epsilon:
+			move = super().choose_move(battle)
+		else:
+			move = self.choose_random_move(battle)
+		return move
