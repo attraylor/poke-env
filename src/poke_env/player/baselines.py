@@ -227,7 +227,9 @@ class EpsilonRandomSimpleHeuristicsPlayer(SimpleHeuristicsPlayer):
 	def choose_move(self, battle):
 		random_roll = np.random.rand()
 		if random_roll > self.epsilon:
+			print("shp move chosen")
 			move = super().choose_move(battle)
 		else:
+			print("random move chosen")
 			move = self.choose_random_move(battle)
 		return move
