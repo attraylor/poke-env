@@ -37,9 +37,9 @@ print(sys.path)
 from poke_env.player_configuration import PlayerConfiguration
 from poke_env.player.env_player import Gen8EnvSinglePlayer
 from poke_env.player.random_player import RandomPlayer
-from poke_env.server_configuration import LocalhostServerConfiguration
+from poke_env.server_configuration import LocalhostServerConfiguration, manual_server
 from poke_env.player.player import Player
-from poke_env.player.baselines import RandomPlayer, SimpleHeuristicsPlayer
+from poke_env.player.baselines import RandomPlayer, SimpleHeuristicsPlayer, EpsilonRandomSimpleHeuristicsPlayer
 
 from io import StringIO
 
@@ -240,6 +240,7 @@ def fit(player, nb_steps):
 torch.set_printoptions(sci_mode=False)
 
 def test(player, nb_episodes):
+	global field_to_idx
 	#tq = trange(nb_episodes, desc="Reward: 0")
 	tq = range(nb_episodes)
 	episode_reward = 0
@@ -252,6 +253,7 @@ def test(player, nb_episodes):
 				state = torch.autograd.Variable(torch.Tensor(state), requires_grad=False)
 			for t in count():
 				# Select and perform an action
+				field_to_idx = player.field_to_idx
 				action = select_action(state, env_player.gen8_legal_action_mask(env_player._current_battle),
 						test=True)
 				next_state, reward, done, info = env_player.step(action.item())
@@ -551,6 +553,7 @@ if __name__ == "__main__":
 
 	#This is if we need to load an existing config for testing.
 	test_only = False
+	args = None
 	if test_only == True:
 		parser = argparse.ArgumentParser()
 		parser.add_argument("--test_directory", type=str, default="")
@@ -597,7 +600,8 @@ if __name__ == "__main__":
 			save_transitions = False,
 			rb_beta = .4,
 			test_only = False,
-			test_directory = ""
+			test_directory = "results",
+			shp_epsilon = .05
 		)
 
 	wandb.init(config=hyperparameter_defaults)
@@ -629,6 +633,7 @@ if __name__ == "__main__":
 	rand_name = "rand" + short_run_name
 	max_name = "max" + short_run_name
 	shp_name = "shp" + short_run_name
+	eps_shp_name = "eps_shp_{}".format(config.shp_epsilon) + short_run_name
 
 	print(agent_name, rand_name, max_name, shp_name)
 
@@ -661,6 +666,14 @@ if __name__ == "__main__":
 		server_configuration=LocalhostServerConfiguration,
 	)
 
+	fourth_opponent = EpsilonRandomSimpleHeuristicsPlayer(
+		player_configuration=PlayerConfiguration(shp_name, None),
+		battle_format="gen8ou",
+		team=custom_builder2,
+		server_configuration=LocalhostServerConfiguration,
+		epsilon = config.shp_epsilon,
+	)
+
 	n_actions = len(env_player.action_space)
 
 	if "ou" in config.our_team_name and not "starter" in config.our_team_name:
@@ -684,44 +697,57 @@ if __name__ == "__main__":
 
 	#optimizer = optim.RMSprop(policy_net.parameters())
 	#TODO: Optimize params for both policy networks
-	if config.dqn_style == "double":
-		optimizer_theta = optim.Adam(policy_net_theta.parameters(), lr=config.learning_rate)
-		optimizer_prime = optim.Adam(policy_net_prime.parameters(), lr=config.learning_rate)
+	if test_only == False:
+		if config.dqn_style == "double":
+			optimizer_theta = optim.Adam(policy_net_theta.parameters(), lr=config.learning_rate)
+			optimizer_prime = optim.Adam(policy_net_prime.parameters(), lr=config.learning_rate)
+		else:
+			optimizer = optim.Adam(policy_net.parameters(), lr=config.learning_rate)
+
+		env_dict = {"obs": {"shape": (434, 1)},
+					"act": {},
+					"rew": {},
+					"next_obs": {"shape": (434, 1)},
+					"done": {}
+					}
+		rb_beta = config.rb_beta #.4
+		rb = cpprb.PrioritizedReplayBuffer(config.memory_size, env_dict)#ReplayMemory(config.memory_size)
+
+		steps_done = 0
+
+		reward_hist = []
+		if config.opponent_ai == "random":
+			training_opp = opponent
+		elif config.opponent_ai == "max":
+			training_opp = second_opponent
+		elif config.opponent_ai == "shp":
+			training_opp = third_opponent
+		elif config.opponent_ai == "eps_shp":
+			training_opp = fourth_opponent
+
+		env_player.play_against(
+			env_algorithm=dqn_training,
+			opponent=training_opp,
+			env_algorithm_kwargs={"nb_steps": config.nb_training_steps},
+		)
+		if config.dqn_style == "double":
+			torch.save(policy_net_theta.state_dict(), os.path.join(writepath, "saved_model_theta.torch"))
+			torch.save(policy_net_prime.state_dict(), os.path.join(writepath, "saved_model_prime.torch"))
+		else:
+			model_path = os.path.join(writepath, "saved_model.torch")
+			torch.save(policy_net.state_dict(), model_path)
+
+
+		print("***** Model saved, run complete *****")
 	else:
-		optimizer = optim.Adam(policy_net.parameters(), lr=config.learning_rate)
-
-	env_dict = {"obs": {"shape": (434, 1)},
-				"act": {},
-				"rew": {},
-				"next_obs": {"shape": (434, 1)},
-				"done": {}
-				}
-	rb_beta = config.rb_beta #.4
-	rb = cpprb.PrioritizedReplayBuffer(config.memory_size, env_dict)#ReplayMemory(config.memory_size)
-
-	steps_done = 0
-
-	reward_hist = []
-	if config.opponent_ai == "random":
-		training_opp = opponent
-	elif config.opponent_ai == "max":
-		training_opp = second_opponent
-	elif config.opponent_ai == "shp":
-		training_opp = third_opponent
-	env_player.play_against(
-		env_algorithm=dqn_training,
-		opponent=training_opp,
-		env_algorithm_kwargs={"nb_steps": config.nb_training_steps},
-	)
-	if config.dqn_style == "double":
-		torch.save(policy_net_theta.state_dict(), os.path.join(writepath, "saved_model_theta.torch"))
-		torch.save(policy_net_prime.state_dict(), os.path.join(writepath, "saved_model_prime.torch"))
-	else:
-		model_path = os.path.join(writepath, "saved_model.torch")
-		torch.save(policy_net.state_dict(), model_path)
-
-
-	print("***** Model saved, run complete *****")
+ 		if config.dqn_style == "double":
+ 			prime_path = os.path.join(config.test_directory, "saved_model_prime.torch")
+ 			theta_path = os.path.join(config.test_directory, "saved_model_theta.torch")
+ 			policy_net_prime.load_state_dict(torch.load(prime_path))
+ 			policy_net_theta.load_state_dict(torch.load(theta_path))
+ 		else:
+ 			model_path = os.path.join(config.test_directory, "saved_model.torch")
+ 			policy_net.load_state_dict(torch.load(model_path))
 	old_stdout = sys.stdout
 	result = StringIO()
 	sys.stdout = result#open("results/"+file_time+"/log_games.txt","w+")
@@ -744,6 +770,12 @@ if __name__ == "__main__":
 		env_algorithm_kwargs={"nb_episodes": config.nb_evaluation_episodes},
 	)
 
+	env_player.play_against(
+		env_algorithm=dqn_evaluation,
+		opponent=fourth_opponent,
+		env_algorithm_kwargs={"nb_episodes": config.nb_evaluation_episodes},
+	)
+
 	sys.stdout = old_stdout
 
 	result_string = result.getvalue()
@@ -751,9 +783,10 @@ if __name__ == "__main__":
 	random_winrate = float(winrates[0].split(" ")[2])/config.nb_evaluation_episodes
 	max_winrate = float(winrates[1].split(" ")[2])/config.nb_evaluation_episodes
 	heuristic_winrate = float(winrates[2].split(" ")[2])/config.nb_evaluation_episodes
+	eps_heuristic_winrate = float(winrates[3].split(" ")[2])/config.nb_evaluation_episodes
 
-	wandb.log({"random_winrate": random_winrate, "max_winrate": max_winrate, "heuristic_winrate": heuristic_winrate})
-	print(random_winrate, max_winrate, heuristic_winrate)
+	wandb.log({"random_winrate": random_winrate, "max_winrate": max_winrate, "heuristic_winrate": heuristic_winrate, "eps_heuristic_winrate": eps_heuristic_winrate})
+	print(random_winrate, max_winrate, heuristic_winrate, eps_heuristic_winrate)
 	print('Complete')
 
 	wandb.finish()

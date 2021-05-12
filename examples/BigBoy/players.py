@@ -439,7 +439,18 @@ class SingleLineRLPlayer(Gen8EnvSinglePlayer):
 						print("weirdo move error", move,  i)
 						print(STR_TO_ID["moves"][move])
 					try:
+						#DISCRETIZATION
 						move_pp[i] = move_obj._current_pp / move_obj.max_pp
+						if move_pp[i] == 0:
+							move_pp[i]] = 0
+						elif move_pp[i] > 0 and move_pp[i] <= 0.25:
+							move_pp[i] = 0.25
+						elif move_pp[i] > 0.25 and move_pp[i] <= 0.5:
+							move_pp[i] = 0.5
+						elif move_pp[i] > 0.75 and move_pp[i] < 1:
+							move_pp[i] = 0.75
+						elif move_pp[i] == 1:
+							move_pp[i] = 1
 					except ZeroDivisionError:
 						print("Move division by zero for pp calc", move, move_obj._current_pp, pokemon._species)
 					move_accuracies[i] = move_obj.accuracy
@@ -478,11 +489,19 @@ class SingleLineRLPlayer(Gen8EnvSinglePlayer):
 				#HP (%perentage)
 
 				try:
-					hp_percentage[0] = pokemon._current_hp * 1.0 / pokemon._max_hp
+					actual_hp_perc = pokemon._current_hp * 1.0 / pokemon._max_hp
+					if actual_hp_perc == 0:
+							hp_percentage[0] = 0
+					elif actual_hp_perc > 0 and actual_hp_perc <= 0.25:
+							hp_percentage[0] = 0.25
+					elif actual_hp_perc > 0.25 and actual_hp_perc <= 0.5:
+							hp_percentage[0] = 0.5
+					elif actual_hp_perc > 0.75 and actual_hp_perc < 1:
+							hp_percentage[0] = 0.75
+					elif actual_hp_perc == 1:
+							hp_percentage[0] = 1
 				except TypeError:
 					print("calculating hp percentage failed for {}".format(pokemon._species))
-
-
 
 
 				for i, name in enumerate(["hp", "atk", "def", "spa", "spd", "spe"]):

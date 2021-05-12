@@ -11,7 +11,7 @@ ServerConfiguration = namedtuple(
 and authentication endpoint url."""
 
 LocalhostServerConfiguration = ServerConfiguration(
-    "localhost:8000", "https://play.pokemonshowdown.com/action.php?"
+    "node951:8000", "https://play.pokemonshowdown.com/action.php?"
 )
 """Server configuration with localhost and smogon's authentication endpoint."""
 
@@ -19,3 +19,9 @@ ShowdownServerConfiguration = ServerConfiguration(
     "sim.smogon.com:8000", "https://play.pokemonshowdown.com/action.php?"
 )
 """Server configuration with smogon's server and authentication endpoint."""
+
+def manual_server(node_name):
+	return ServerConfiguration(
+	    "{}:8000".format(node_name), "https://play.pokemonshowdown.com/action.php?"
+	)
+	"""Server configuration with localhost and smogon's authentication endpoint."""

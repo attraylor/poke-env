@@ -59,6 +59,17 @@ class SinglelineMediumBoy_DQN(nn.Module):
 		super(SinglelineMediumBoy_DQN, self).__init__()
 		#Embedding dimension sizes
 
+		self.use_pokemon_encoder = True
+
+		if self.use_pokemon_encoder == True:
+			self.pokemon_encoder_size = 16
+			self.pokemon_encoder_input_size = 19 + 7 + 1
+			self.pokemon_encoder = []
+			self.pokemon_encoder.append(nn.Linear(self.pokemon_encoder_input_size, self.pokemon_encoder_size))#self.pokemon_encoder_size)
+			self.pokemon_encoder.append(nn.ReLU())
+			self.pokemon_encoder.append(nn.Linear(self.pokemon_encoder_size, self.pokemon_encoder_input_size))#self.pokemon_encoder_size)
+			self.pokemon_encoder = nn.Sequential(*self.pokemon_encoder)
+
 
 		self.type_embedding = nn.Embedding(19, 19)
 		self.type_embedding.weight.data = torch.FloatTensor(np.eye(19))
@@ -71,10 +82,11 @@ class SinglelineMediumBoy_DQN(nn.Module):
 		self.input_dim = 288
 		self.hidden_dim = config.complete_state_hidden_dim
 		self.output_dim = 22
-		self.input_layer = 	nn.Linear(self.input_dim, self.hidden_dim)
-		layers = []
+		self.input_layer = nn.Linear(self.input_dim, self.hidden_dim)
+		layers = [nn.LayerNorm(self.input_dim), self.input_layer]
 		layers.append(nn.ReLU())
 		for i in range(0, config.num_layers):
+			layers.append(nn.LayerNorm(self.hidden_dim))
 			layers.append(nn.Linear(self.hidden_dim, self.hidden_dim))
 			layers.append(nn.ReLU())
 		self.layers = nn.Sequential(*layers)
@@ -88,6 +100,32 @@ class SinglelineMediumBoy_DQN(nn.Module):
 		#for i in range(1, config.num_layers):
 		#	self.layers.append(nn.Linear(config.hidden_dim,config.hidden_dim))
 		#self.layers.append(nn.Linear(self.hidden_dim,config.output_dim))
+
+	def get_input_size(self):
+		input_size = 0
+		argument_enabled_to_input_size = {
+			"our_pokemon_1_move_powers": 4,
+			"our_pokemon_1_move_type_ids": 76,
+			"our_pokemon_1_hp_percentage": 1,
+			"our_pokemon_2_6_hp_percentage": 5,
+			"our_pokemon_1_boosts": 7,
+			"our_pokemon_1_type_ids": 19,
+			"our_pokemon_2_6_type_ids": 95,
+			"opponent_pokemon_active_type_ids": 19,
+			"opponent_pokemon_active_boosts": 7,
+			"opponent_pokemon_active_hp_percentage": 1,
+			"our_pokemon_1_volatiles": 1, #TODO: More volatiles
+			"opponent_pokemon_active_volatiles": 1,
+			"our_side_conditions": 1,
+			"opponent_side_conditions": 1,
+			"our_pokemon_1_status_id": 1,
+			"our_pokemon_2_6_status_id": 5,
+			"opponent_pokemon_active_status_id": 1
+			}
+		for key,value in self.teambuilding_config.items() and value == True:
+			if key in argument_enabled_to_input_size.keys():
+				input_size += argument_enabled_to_input_size[key]
+		return input_size
 
 	def forward(self, batch, field_to_idx, verbose=False):
 		"""State representation right now:
@@ -113,11 +151,17 @@ class SinglelineMediumBoy_DQN(nn.Module):
 
 		features.append(torch.FloatTensor(batch[:,field_to_idx["our_pokemon_1_boosts"]]))
 
-
 		for i in range(1, 7):
-			features.append(self.type_embedding(batch[:,field_to_idx["our_pokemon_{}_type_ids".format(i)][0]].long()) + self.type_embedding(batch[:,field_to_idx["our_pokemon_{}_type_ids".format(i)][1]].long()))
-			features.append(torch.FloatTensor(batch[:,field_to_idx["our_pokemon_{}_hp_percentage".format(i)]]))
-			features.append(self.status_embedding(batch[:,field_to_idx["our_pokemon_{}_status_id".format(i)]].long()))
+			pokemon_object = []
+			pokemon_object.append(self.type_embedding(batch[:,field_to_idx["our_pokemon_{}_type_ids".format(i)][0]].long()) + self.type_embedding(batch[:,field_to_idx["our_pokemon_{}_type_ids".format(i)][1]].long()))
+			pokemon_object.append(torch.FloatTensor(batch[:,field_to_idx["our_pokemon_{}_hp_percentage".format(i)]]))
+			pokemon_object.append(self.status_embedding(batch[:,field_to_idx["our_pokemon_{}_status_id".format(i)]].long()))
+			pokemon_object = torch.cat(pokemon_object,dim=1)
+			if self.use_pokemon_encoder == True:
+				features.append(self.pokemon_encoder(pokemon_object))
+			else:
+				features.append(pokemon_object)
+
 
 		features.append(self.type_embedding(batch[:,field_to_idx["opponent_pokemon_active_type_ids"][0]].long()) + self.type_embedding(batch[:,field_to_idx["opponent_pokemon_active_type_ids"][1]].long()))
 		features.append(torch.FloatTensor(batch[:,field_to_idx["opponent_pokemon_active_boosts"]]))
@@ -142,7 +186,7 @@ class SinglelineMediumBoy_DQN(nn.Module):
 			print("")
 			print(features)
 
-		state_embedding = self.last_layer(self.layers(self.input_layer(features)))
+		state_embedding = self.last_layer(self.layers(features))
 
 		#TODO (longterm): move residuals
 		return state_embedding
