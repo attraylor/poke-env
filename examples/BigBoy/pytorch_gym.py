@@ -601,7 +601,7 @@ if __name__ == "__main__":
 			rb_beta = .4,
 			test_only = False,
 			test_directory = "results",
-			shp_epsilon = .05
+			shp_epsilon = .1
 		)
 
 	wandb.init(config=hyperparameter_defaults)
