@@ -8,6 +8,9 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Union
+from poke_env.player_configuration import PlayerConfiguration
+from poke_env.server_configuration import LocalhostServerConfiguration
+from poke_env.server_configuration import ServerConfiguration
 
 class MaxBasePowerPlayer(Player):
     def choose_move(self, battle):
