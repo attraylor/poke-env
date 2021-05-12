@@ -610,7 +610,7 @@ if __name__ == "__main__":
 	if wandb.run.name is not None:
 		run_name = wandb.run.name
 	else:
-		run_name = str(time.time())
+		run_name = "unlabeled-run-1"
 
 	writepath = os.path.join("results/",run_name)
 	transitions_path = os.path.join(writepath, "transitions")
@@ -635,7 +635,7 @@ if __name__ == "__main__":
 	shp_name = "shp" + short_run_name
 	eps_shp_name = "eps_shp_{}".format(config.shp_epsilon) + short_run_name
 
-	print(agent_name, rand_name, max_name, shp_name)
+	print(agent_name, rand_name, max_name, shp_name, eps_shp_name)
 
 	env_player = SingleLineRLPlayer(
 		player_configuration=PlayerConfiguration(agent_name, None),
@@ -667,7 +667,7 @@ if __name__ == "__main__":
 	)
 
 	fourth_opponent = EpsilonRandomSimpleHeuristicsPlayer(
-		player_configuration=PlayerConfiguration(shp_name, None),
+		player_configuration=PlayerConfiguration(eps_shp_name, None),
 		battle_format="gen8ou",
 		team=custom_builder2,
 		server_configuration=LocalhostServerConfiguration,
