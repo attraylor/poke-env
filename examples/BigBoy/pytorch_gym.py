@@ -624,7 +624,7 @@ if __name__ == "__main__":
 
 	custom_builder = RandomTeamFromPool([teams[config.our_team_name]])
 	if opponent_team_name == "two_teams":
-		custom_builder2 = RandomTeamFromPool([teams["ou_1"], teams["ou_2"]]])
+		custom_builder2 = RandomTeamFromPool([teams["ou_1"], teams["ou_2"]])
 	else:
 		custom_builder2 = RandomTeamFromPool([teams[config.opponent_team_name]])
 
