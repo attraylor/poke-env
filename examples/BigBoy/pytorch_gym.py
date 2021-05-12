@@ -623,7 +623,10 @@ if __name__ == "__main__":
 		fconfig.write("{}\t{}\n".format(key, config[key]))
 
 	custom_builder = RandomTeamFromPool([teams[config.our_team_name]])
-	custom_builder2 = RandomTeamFromPool([teams[config.opponent_team_name]])
+	if opponent_team_name = "two_teams":
+		custom_builder2 = RandomTeamFromPool([teams["ou_1"], teams["ou_2"]]])
+	else:
+		custom_builder2 = RandomTeamFromPool([teams[config.opponent_team_name]])
 
 
 	print("RUN NAME!!!", run_name, type(run_name))
@@ -673,6 +676,21 @@ if __name__ == "__main__":
 		server_configuration=LocalhostServerConfiguration,
 		epsilon = config.shp_epsilon,
 	)
+
+	if config.opponent_team_name == "two_teams":
+		test_opp1 = SimpleHeuristicsPlayer(
+			player_configuration=PlayerConfiguration(shp_name + "team1", None),
+			battle_format="gen8ou",
+			team=RandomTeamFromPool([teams["ou_1"]]),
+			server_configuration=LocalhostServerConfiguration,
+		)
+
+		test_opp2 = SimpleHeuristicsPlayer(
+			player_configuration=PlayerConfiguration(shp_name + "team2", None),
+			battle_format="gen8ou",
+			team=RandomTeamFromPool([teams["ou_2"]]),
+			server_configuration=LocalhostServerConfiguration,
+		)
 
 	n_actions = len(env_player.action_space)
 
@@ -776,6 +794,19 @@ if __name__ == "__main__":
 		env_algorithm_kwargs={"nb_episodes": config.nb_evaluation_episodes},
 	)
 
+	if config.opponent_team_name == "two_teams":
+		env_player.play_against(
+			env_algorithm=dqn_evaluation,
+			opponent=test_opp1,
+			env_algorithm_kwargs={"nb_episodes": config.nb_evaluation_episodes},
+		)
+
+		env_player.play_against(
+			env_algorithm=dqn_evaluation,
+			opponent=test_opp2,
+			env_algorithm_kwargs={"nb_episodes": config.nb_evaluation_episodes},
+		)
+
 	sys.stdout = old_stdout
 
 	result_string = result.getvalue()
@@ -784,6 +815,12 @@ if __name__ == "__main__":
 	max_winrate = float(winrates[1].split(" ")[2])/config.nb_evaluation_episodes
 	heuristic_winrate = float(winrates[2].split(" ")[2])/config.nb_evaluation_episodes
 	eps_heuristic_winrate = float(winrates[3].split(" ")[2])/config.nb_evaluation_episodes
+	if config.opponent_team_name == "two_teams":
+			opp_team_1_winrate = float(winrates[4].split(" ")[2])/config.nb_evaluation_episodes
+			opp_team_2_winrate = float(winrates[5].split(" ")[2])/config.nb_evaluation_episodes
+			avg_winrate_across_opp_teams = (opp_team_1_winrate + opp_team_2_winrate) / 2.0
+			wandb.log({"opp_team_1_winrate": opp_team_1_winrate, "opp_team_1_winrate": opp_team_2_winrate, "avg_winrate_across_opp_teams":  avg_winrate_across_opp_teams})
+			print(opp_team_1_winrate, opp_team_2_winrate, avg_winrate_across_opp_teams)
 
 	wandb.log({"random_winrate": random_winrate, "max_winrate": max_winrate, "heuristic_winrate": heuristic_winrate, "eps_heuristic_winrate": eps_heuristic_winrate})
 	print(random_winrate, max_winrate, heuristic_winrate, eps_heuristic_winrate)
