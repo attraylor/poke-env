@@ -442,7 +442,7 @@ class SingleLineRLPlayer(Gen8EnvSinglePlayer):
 						#DISCRETIZATION
 						move_pp[i] = move_obj._current_pp / move_obj.max_pp
 						if move_pp[i] == 0:
-							move_pp[i]] = 0
+							move_pp[i] = 0
 						elif move_pp[i] > 0 and move_pp[i] <= 0.25:
 							move_pp[i] = 0.25
 						elif move_pp[i] > 0.25 and move_pp[i] <= 0.5:
