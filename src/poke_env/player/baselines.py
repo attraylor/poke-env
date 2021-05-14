@@ -79,6 +79,17 @@ class SimpleHeuristicsPlayer(Player):
     def _should_switch_out(self, battle):
         active = battle.active_pokemon
         opponent = battle.opponent_active_pokemon
+		if battle.turn == 1:
+             self.switches_in_a_row = 0
+			 self.forced_attack = False
+         elif self.switches_in_a_row > 6:
+             print("endless play clause")
+             self.switches_in_a_row = 0
+			 self.forced_attack = True
+             return False
+         else:
+			 self.forced_attack = False
+             self.switches_in_a_row += 1
         # If there is a decent switch in...
         if [
             m
@@ -103,6 +114,8 @@ class SimpleHeuristicsPlayer(Player):
                 < self.SWITCH_OUT_MATCHUP_THRESHOLD
             ):
                 return True
+		self.switches_in_a_row = 0
+		self.forced_attack = False
         return False
 
     def _stat_estimation(self, mon, stat):
@@ -227,7 +240,7 @@ class EpsilonRandomSimpleHeuristicsPlayer(SimpleHeuristicsPlayer):
 
 	def choose_move(self, battle):
 		random_roll = np.random.rand()
-		if random_roll > self.epsilon:
+		if random_roll > self.epsilon or  :
 			move = super().choose_move(battle)
 		else:
 			move = self.choose_random_move(battle)
