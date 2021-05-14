@@ -20,7 +20,6 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from teams import teams
-from poke_env.teambuilder.teambuilder import Teambuilder
 
 
 import argparse
@@ -33,6 +32,9 @@ import cpprb
 print("file", __file__)
 import sys
 sys.path += ["/gpfs/data/epavlick/atraylor/Pokemon/poke-env/src"]
+
+from poke_env.teambuilder.teambuilder import Teambuilder
+
 
 print(sys.path)
 
