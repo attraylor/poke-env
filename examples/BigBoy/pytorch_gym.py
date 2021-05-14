@@ -61,7 +61,7 @@ from players import *
 from config_utils import create_config
 
 def count_parameters(model):
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+	return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 Transition = namedtuple('Transition',
 						('state', 'action', 'next_state', 'reward'))
@@ -546,18 +546,18 @@ def dqn_evaluation(player, nb_episodes):
 
 
 class RandomTeamFromPool(Teambuilder):
-    def __init__(self, teams):
-        self.teams = [self.join_team(self.parse_showdown_team(team)) for team in teams]
+	def __init__(self, teams):
+		self.teams = [self.join_team(self.parse_showdown_team(team)) for team in teams]
 
-    def yield_team(self):
-        return np.random.choice(self.teams)
+	def yield_team(self):
+		return np.random.choice(self.teams)
 
 #TODO: Highly inefficient!!
 def data_augment(state, action, next_state, field_to_idx, k=25):
 	augmented_data = []
 	for i in range(k):
-		new_state = copy.deepcopy(state)
-		new_next_state = copy.deepcopy(next_state)
+		new_state = deepcopy(state)
+		new_next_state = deepcopy(next_state)
 		new_party_order = np.random.permutation(5) + 2 #shuffles [2,3,4,5,6]
 		for old_pokemon_idx, new_pokemon_party_idx in enumerate(new_party_order):
 			old_pokemon_party_idx = old_pokemon_idx + 2
