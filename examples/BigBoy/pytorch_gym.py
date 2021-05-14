@@ -574,7 +574,8 @@ def data_augment(state, action, next_state, field_to_idx, k=25):
 						new_next_state[new_key_idx] = next_state[old_key_idx]
 		if action >= 16:
 			new_action = new_party_order[action - 16] + 16 - 2
-			print(action, new_action, new_party_order[1])
+		else:
+			new_action = action
 		augmented_data.append((new_state, new_action, new_next_state))
 	return augmented_data
 
