@@ -37,6 +37,7 @@ class SimpleHeuristicsPlayer(Player):
     SPEED_TIER_COEFICIENT = 0.1
     HP_FRACTION_COEFICIENT = 0.4
     SWITCH_OUT_MATCHUP_THRESHOLD = -2
+	self.forced_attack = False
 
     def _estimate_matchup(self, mon, opponent):
         score = max([opponent.damage_multiplier(t) for t in mon.types if t is not None])
