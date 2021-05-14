@@ -20,6 +20,8 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from teams import teams
+from poke_env.teambuilder.teambuilder import Teambuilder
+
 
 import argparse
 
@@ -208,6 +210,11 @@ def fit(player, nb_steps):
 				#if push < 2 and reward != 0:
 				#	print("PUSH REWARD", reward)
 				next_state = torch.autograd.Variable(torch.Tensor(next_state), requires_grad=False)
+				if config.data_augment_k > 1:
+					augmented_data = data_augment(state, action, next_state, field_to_idx, k=config.data_augment_k)
+					for (aug_s, aug_a, aug_ns) in augmented_data:
+						rb.add(obs=aug_s, act=aug_a, next_obs=aug_ns, rew=reward, done=done)
+
 				rb.add(obs=state, act=action, next_obs=next_state, rew=reward, done=done)
 				state = next_state
 
@@ -535,7 +542,6 @@ def dqn_evaluation(player, nb_episodes):
 		% (player.n_won_battles, nb_episodes)
 	)
 
-from poke_env.teambuilder.teambuilder import Teambuilder
 
 class RandomTeamFromPool(Teambuilder):
     def __init__(self, teams):
@@ -544,6 +550,31 @@ class RandomTeamFromPool(Teambuilder):
     def yield_team(self):
         return np.random.choice(self.teams)
 
+#TODO: Highly inefficient!!
+def data_augment(state, action, next_state, field_to_idx, k=25):
+	augmented_data = []
+	for i in range(k):
+		new_state = copy.deepcopy(state)
+		new_next_state = copy.deepcopy(next_state)
+		new_party_order = np.random.permutation(5) + 2 #shuffles [2,3,4,5,6]
+		for old_pokemon_idx, new_pokemon_party_idx in enumerate(new_party_order):
+			old_pokemon_party_idx = old_pokemon_idx + 2
+			for key, value in field_to_idx.items():
+				if "pokemon_{}".format(old_pokemon_party_idx) in key:
+					new_key = key.replace(str(old_pokemon_party_idx), str(new_pokemon_party_idx))
+					new_key_idx = field_to_idx[new_key]
+					old_key_idx = field_to_idx[key]
+					if type(value) == list:
+						new_state[new_key_idx[0]:new_key_idx[-1]+1] = state[old_key_idx[0]:old_key_idx[-1]+1]
+						new_next_state[new_key_idx[0]:new_key_idx[-1]+1] = next_state[old_key_idx[0]:old_key_idx[-1]+1]
+					else:
+						new_state[new_key_idx] = state[old_key_idx]
+						new_next_state[new_key_idx] = next_state[old_key_idx]
+		if action >= 16:
+			new_action = new_party_order[action - 16] + 16 - 2
+			print(action, new_action, new_party_order[1])
+		augmented_data.append((new_state, new_action, new_next_state))
+	return augmented_data
 
 if __name__ == "__main__":
 	global config
@@ -601,7 +632,8 @@ if __name__ == "__main__":
 			rb_beta = .4,
 			test_only = False,
 			test_directory = "results",
-			shp_epsilon = .1
+			shp_epsilon = .1,
+			data_augment_k = 4,
 		)
 
 	wandb.init(config=hyperparameter_defaults)
@@ -819,7 +851,7 @@ if __name__ == "__main__":
 			opp_team_1_winrate = float(winrates[4].split(" ")[2])/config.nb_evaluation_episodes
 			opp_team_2_winrate = float(winrates[5].split(" ")[2])/config.nb_evaluation_episodes
 			avg_winrate_across_opp_teams = (opp_team_1_winrate + opp_team_2_winrate) / 2.0
-			wandb.log({"opp_team_1_winrate": opp_team_1_winrate, "opp_team_1_winrate": opp_team_2_winrate, "avg_winrate_across_opp_teams":  avg_winrate_across_opp_teams})
+			wandb.log({"opp_team_1_winrate": opp_team_1_winrate, "opp_team_2_winrate": opp_team_2_winrate, "avg_winrate_across_opp_teams":  avg_winrate_across_opp_teams})
 			print(opp_team_1_winrate, opp_team_2_winrate, avg_winrate_across_opp_teams)
 
 	wandb.log({"random_winrate": random_winrate, "max_winrate": max_winrate, "heuristic_winrate": heuristic_winrate, "eps_heuristic_winrate": eps_heuristic_winrate})
