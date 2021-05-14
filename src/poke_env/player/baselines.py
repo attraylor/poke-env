@@ -79,17 +79,17 @@ class SimpleHeuristicsPlayer(Player):
     def _should_switch_out(self, battle):
         active = battle.active_pokemon
         opponent = battle.opponent_active_pokemon
-		if battle.turn == 1:
-             self.switches_in_a_row = 0
-			 self.forced_attack = False
-         elif self.switches_in_a_row > 6:
-             print("endless play clause")
-             self.switches_in_a_row = 0
-			 self.forced_attack = True
-             return False
-         else:
-			 self.forced_attack = False
-             self.switches_in_a_row += 1
+        if battle.turn == 1:
+            self.switches_in_a_row = 0
+            self.forced_attack = False
+        elif self.switches_in_a_row > 6:
+            print("endless play clause")
+            self.switches_in_a_row = 0
+            self.forced_attack = True
+            return False
+        else:
+            self.forced_attack = False
+            self.switches_in_a_row += 1
         # If there is a decent switch in...
         if [
             m
@@ -114,8 +114,8 @@ class SimpleHeuristicsPlayer(Player):
                 < self.SWITCH_OUT_MATCHUP_THRESHOLD
             ):
                 return True
-		self.switches_in_a_row = 0
-		self.forced_attack = False
+        self.switches_in_a_row = 0
+        self.forced_attack = False
         return False
 
     def _stat_estimation(self, mon, stat):
@@ -213,35 +213,35 @@ class SimpleHeuristicsPlayer(Player):
         return self.choose_random_move(battle)
 
 class EpsilonRandomSimpleHeuristicsPlayer(SimpleHeuristicsPlayer):
-	def __init__(self,
-	player_configuration: Optional[PlayerConfiguration] = None,
-	*,
-	avatar: Optional[int] = None,
-	battle_format: str = "gen8randombattle",
-	log_level: Optional[int] = None,
-	max_concurrent_battles: int = 1,
-	server_configuration: Optional[ServerConfiguration] = None,
-	start_timer_on_battle_start: bool = False,
-	start_listening: bool = True,
-	team: Optional[Union[str, Teambuilder]] = None,
-	epsilon: int):
-		super().__init__(
-			player_configuration = player_configuration,
-			avatar = avatar,
-			battle_format = battle_format,
-			log_level = log_level,
-			max_concurrent_battles = max_concurrent_battles,
-			server_configuration = server_configuration,
-			start_timer_on_battle_start = start_timer_on_battle_start,
-			start_listening = start_listening,
-			team = team,
-			)
-		self.epsilon = epsilon
+    def __init__(self,
+    player_configuration: Optional[PlayerConfiguration] = None,
+    *,
+    avatar: Optional[int] = None,
+    battle_format: str = "gen8randombattle",
+    log_level: Optional[int] = None,
+    max_concurrent_battles: int = 1,
+    server_configuration: Optional[ServerConfiguration] = None,
+    start_timer_on_battle_start: bool = False,
+    start_listening: bool = True,
+    team: Optional[Union[str, Teambuilder]] = None,
+    epsilon: int):
+        super().__init__(
+            player_configuration = player_configuration,
+            avatar = avatar,
+            battle_format = battle_format,
+            log_level = log_level,
+            max_concurrent_battles = max_concurrent_battles,
+            server_configuration = server_configuration,
+            start_timer_on_battle_start = start_timer_on_battle_start,
+            start_listening = start_listening,
+            team = team,
+            )
+        self.epsilon = epsilon
 
-	def choose_move(self, battle):
-		random_roll = np.random.rand()
-		if random_roll > self.epsilon or  :
-			move = super().choose_move(battle)
-		else:
-			move = self.choose_random_move(battle)
-		return move
+    def choose_move(self, battle):
+        random_roll = np.random.rand()
+        if random_roll > self.epsilon or  :
+            move = super().choose_move(battle)
+        else:
+            move = self.choose_random_move(battle)
+        return move
