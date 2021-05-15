@@ -38,10 +38,6 @@ class SimpleHeuristicsPlayer(Player):
     HP_FRACTION_COEFICIENT = 0.4
     SWITCH_OUT_MATCHUP_THRESHOLD = -2
 
-    def __init__(self):
-        super().__init__()
-        self.forced_attack = False
-
     def _estimate_matchup(self, mon, opponent):
         score = max([opponent.damage_multiplier(t) for t in mon.types if t is not None])
         score -= max(
@@ -243,7 +239,7 @@ class EpsilonRandomSimpleHeuristicsPlayer(SimpleHeuristicsPlayer):
 
     def choose_move(self, battle):
         random_roll = np.random.rand()
-        if random_roll > self.epsilon or self.forced_attack == True:
+        if random_roll > self.epsilon or (hasattr(self, "forced_attack") and self.forced_attack == True):
             move = super().choose_move(battle)
         else:
             move = self.choose_random_move(battle)
